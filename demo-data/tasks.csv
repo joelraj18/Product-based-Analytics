@@ -1,0 +1,7 @@
+id,content,status,tag,priority,owner,due
+T-1,Publish weekly headcount plan for all sites,In Progress,Planning,High,Planning,2026-10-02
+T-2,Reconcile OP2 variable cost with Finance,To Do,Finance,High,Finance,2026-10-08
+T-3,"Automate actuals ingestion (AHT, shrinkage) from reporting",To Do,Automation,Medium,Analytics,2026-10-19
+T-4,"RCA: forecast miss on chat queue, last 4 weeks",In Progress,Analytics,Medium,Planning,2026-10-04
+T-5,Peak readiness review with Program and Ops,To Do,Planning,High,Program,2026-10-12
+T-6,Standardize AHT/NPT input template across sites,Done,Process,Low,Planning,2026-09-21

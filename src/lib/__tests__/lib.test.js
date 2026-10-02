@@ -6,6 +6,7 @@ import { mape, wape, bias, toNumber, isMissing, median } from '../stats';
 import { weekStart } from '../dates';
 import { formatCurrency } from '../format';
 import { buildPlan, weeklySeries } from '../planEngine';
+import { weekCost } from '../budget';
 import { seedLines, seedVolumeHistory, seedEvents, DEFAULT_SETTINGS } from '../../data/seed';
 
 describe('csv', () => {
@@ -112,6 +113,14 @@ describe('forecast', () => {
     const out = applyEvents(['2026-01-05', '2026-01-12'], [100, 100], [{ start: '2026-01-14', end: '2026-01-15', upliftPct: 20 }]);
     expect(out).toEqual([100, 120]);
   });
+});
+
+test('hiring cost covers permanent and temp hires; vendor lines bill per unit', () => {
+  const row = { totalHC: 10, otHours: 0, hires: 2, temps: 3 };
+  const inHouse = weekCost({ hoursPerWeek: 40, costPerHour: 100, hireCost: 1000 }, row, 500);
+  expect(inHouse.hiring).toBe(5000);
+  expect(inHouse.base).toBe(40000);
+  expect(weekCost({ costModel: 'perUnit', costPerUnit: 50 }, row, 500).total).toBe(25000);
 });
 
 describe('dates & format', () => {

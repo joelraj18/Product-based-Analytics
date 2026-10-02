@@ -46,6 +46,12 @@ Everything runs client-side. Data lives in the browser's local storage, can be i
 
 Every import screen has a **Template** button that downloads a correctly shaped file.
 
+## Demo data & findings
+
+- [`FINDINGS.md`](FINDINGS.md): audit findings (bugs fixed, with root causes) and planning insights from the demo plan.
+- [`demo-data/`](demo-data/): the demo dataset and plan outputs as CSVs (re-importable into the app), `summary.json`, and an Excel workbook (`WorkX_demo_data_and_findings.xlsx`) with a Findings sheet plus one sheet per dataset.
+- Regenerate with `npm run export-demo` then `python3 scripts/build_findings_workbook.py` (needs `openpyxl`).
+
 ## Getting started
 
 ```bash

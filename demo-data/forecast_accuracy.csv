@@ -1,0 +1,5 @@
+line_id,line_name,method,holdout_weeks,wape_pct,mape_pct,bias_pct
+CS-VOICE,Customer Support · Voice,trendSeasonal,26,1.81,1.79,-0.37
+CS-CHAT,Customer Support · Chat,trendSeasonal,26,2.3,2.28,0.44
+PARTNER-EMAIL,Partner Support · Email,trendSeasonal,26,2.49,2.48,0.64
+RETURNS-OPS,Returns & Claims Ops,trendSeasonal,26,2.29,2.29,0.59

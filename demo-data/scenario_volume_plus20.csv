@@ -1,0 +1,8 @@
+metric,baseline,scenario_current_hiring_plan,scenario_replanned
+peak_required_fte,396.8,476.1,476.1
+weeks_short_after_ot,0,13,3
+uncovered_fte_weeks,0,56.4,23.9
+ot_hours,145,17497,2888
+variable_cost,159145479,173889743,188119778
+perm_hires,79,79,150
+temp_hires,187,187,171

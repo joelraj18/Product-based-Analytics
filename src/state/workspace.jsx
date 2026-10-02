@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import usePersistentState from '../hooks/usePersistentState';
 import { buildPlan } from '../lib/planEngine';
-import { rollupByMonth } from '../lib/budget';
-import { makeRng } from '../lib/random';
+import { deriveOpTargets, monthlyTotals } from '../lib/opTargets';
 import {
   seedOrders, seedInventory, seedSites, seedLines, seedVolumeHistory, seedEvents,
   seedActuals, seedDefects, seedRisks, seedTasks, DEFAULT_SETTINGS,
@@ -12,20 +11,7 @@ const WorkspaceContext = createContext(null);
 
 const DEFAULT_DASHBOARD = { dateCol: 'date', valCol: 'amount', statusCol: 'status', catCol: 'region' };
 
-// OP1 is set early (tighter), OP2 is the mid-year refresh. Seeded around the
-// first baseline so the demo has realistic variances; users can edit/import.
-export const deriveOpTargets = (totalsByMonth) => {
-  const rng = makeRng(808);
-  return totalsByMonth.map(m => ({
-    month: m.month,
-    op1_volume: Math.round(m.volume * (0.93 + rng.next() * 0.05)),
-    op1_cost: Math.round(m.total * (0.92 + rng.next() * 0.05)),
-    op2_volume: Math.round(m.volume * (0.97 + rng.next() * 0.05)),
-    op2_cost: Math.round(m.total * (0.97 + rng.next() * 0.05)),
-  }));
-};
-
-export const monthlyTotals = (plans) => rollupByMonth(plans.flatMap(p => p.costs));
+export { deriveOpTargets, monthlyTotals };
 
 export const WorkspaceProvider = ({ children }) => {
   const [settings, setSettings] = usePersistentState('settings', DEFAULT_SETTINGS);

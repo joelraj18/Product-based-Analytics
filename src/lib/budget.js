@@ -10,7 +10,8 @@ export const weekCost = (params, row, volume) => {
   }
   const base = row.totalHC * p.hoursPerWeek * p.costPerHour;
   const overtime = row.otHours * p.costPerHour * p.otMultiplier;
-  const hiring = row.hires * p.hireCost;
+  // Seasonal temps go through the same recruiting and training as permanent hires.
+  const hiring = (row.hires + (row.temps || 0)) * p.hireCost;
   return { base, overtime, hiring, total: base + overtime + hiring };
 };
 
