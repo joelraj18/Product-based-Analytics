@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Download, Upload, Plus, Trash2, FileDown, Target } from 'lucide-react';
-import { Card, ChartCard, KPICard, DataTable, PageHeader, Button, FileButton, Field, Select, TextInput, NumberInput, StatusPill, useToast } from '../components/ui';
+import { Download, Plus, Trash2, FileDown, Target } from 'lucide-react';
+import { Card, ChartCard, KPICard, DataTable, PageHeader, Button, Field, Select, TextInput, NumberInput, StatusPill, useToast } from '../components/ui';
 import { LineSelect, shortWeek } from '../components/planning';
 import { useWorkspace } from '../state/workspace';
 import { METHODS, backtest, backtestWindow } from '../lib/forecast';
-import { parseCSV, downloadCSV, readFileText, today } from '../lib/csv';
+import { downloadCSV, today } from '../lib/csv';
+import SchemaImportButton from '../components/SchemaImportButton';
 import { formatNumber, formatCompact } from '../lib/format';
 import { parseDate } from '../lib/dates';
 import { SERIES, INK, AXIS_PROPS, GRID_PROPS, TOOLTIP_PROPS, CHART_INIT } from '../lib/theme';
@@ -13,7 +14,7 @@ import { SERIES, INK, AXIS_PROPS, GRID_PROPS, TOOLTIP_PROPS, CHART_INIT } from '
 const accuracyStatus = (w) => (!Number.isFinite(w) ? 'info' : w <= 5 ? 'good' : w <= 10 ? 'warning' : 'critical');
 
 const DemandForecast = () => {
-  const { plan, lines, settings, setSettings, events, setEvents, volumeHistory, setVolumeHistory } = useWorkspace();
+  const { plan, lines, settings, setSettings, events, setEvents, volumeHistory } = useWorkspace();
   const { notify } = useToast();
   const [lineId, setLineId] = useState('all');
   const [newEvent, setNewEvent] = useState({ name: '', start: '', end: '', upliftPct: 10, lineId: 'all' });
@@ -71,21 +72,6 @@ const DemandForecast = () => {
     };
   }, [selected, plan.series, chartData]);
 
-  const importHistory = async (file) => {
-    try {
-      const rows = parseCSV(await readFileText(file));
-      const valid = rows.filter(r => parseDate(r.date) && r.line_id && Number.isFinite(Number(r.volume)));
-      if (!valid.length) { notify('No valid rows. Expected columns: date, line_id, volume, aht (optional).', 'error'); return; }
-      const ids = new Set(valid.map(r => String(r.line_id)));
-      // Replace history only for the lines present in the file.
-      setVolumeHistory([...volumeHistory.filter(r => !ids.has(String(r.line_id))), ...valid.map(r => ({ date: String(r.date).slice(0, 10), line_id: String(r.line_id), volume: Number(r.volume), aht: Number(r.aht) || '' }))]);
-      const unknown = [...ids].filter(id => !lines.some(l => l.id === id));
-      notify(`Imported ${valid.length} daily rows for ${ids.size} line(s).${rows.length - valid.length ? ` Skipped ${rows.length - valid.length} invalid row(s).` : ''}${unknown.length ? ` Unknown line_id(s): ${unknown.join(', ')} — add them in Capacity & Headcount.` : ''}`, unknown.length ? 'warning' : 'success');
-    } catch (e) {
-      notify(`Import failed: ${e.message}`, 'error');
-    }
-  };
-
   const exportForecast = () => {
     const rows = selected.flatMap(p => p.weeks.map((w, i) => ({
       week_start: w, line_id: p.line.id, line_name: p.line.name, method: p.forecast.method,
@@ -123,9 +109,9 @@ const DemandForecast = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title={`Forecast volume (${settings.horizonWeeks} wk)`} value={formatCompact(totals.fcst)} delta={totals.yoy} deltaLabel="vs same weeks last year" />
-        <KPICard title="Peak week" value={totals.peak ? formatNumber(totals.peak.forecast) : '—'} sub={totals.peak ? `week of ${totals.peak.week}` : ''} />
-        <KPICard title="Backtest WAPE" value={Number.isFinite(totals.wape) ? `${totals.wape.toFixed(1)}%` : '—'} status={<StatusPill status={accuracyStatus(totals.wape)}>{accuracyStatus(totals.wape) === 'good' ? 'On target ≤5%' : accuracyStatus(totals.wape) === 'warning' ? 'Review' : 'Off target'}</StatusPill>} icon={<Target size={20} className="text-blue-600" />} />
-        <KPICard title="Backtest bias" value={Number.isFinite(totals.bias) ? `${totals.bias >= 0 ? '+' : ''}${totals.bias.toFixed(1)}%` : '—'} sub={totals.bias > 0 ? 'over-forecasting' : 'under-forecasting'} />
+        <KPICard info="peak" title="Peak week" value={totals.peak ? formatNumber(totals.peak.forecast) : '—'} sub={totals.peak ? `week of ${totals.peak.week}` : ''} />
+        <KPICard info="wape" title="Backtest WAPE" value={Number.isFinite(totals.wape) ? `${totals.wape.toFixed(1)}%` : '—'} status={<StatusPill status={accuracyStatus(totals.wape)}>{accuracyStatus(totals.wape) === 'good' ? 'On target ≤5%' : accuracyStatus(totals.wape) === 'warning' ? 'Review' : 'Off target'}</StatusPill>} icon={<Target size={20} className="text-blue-600" />} />
+        <KPICard info="bias" title="Backtest bias" value={Number.isFinite(totals.bias) ? `${totals.bias >= 0 ? '+' : ''}${totals.bias.toFixed(1)}%` : '—'} sub={totals.bias > 0 ? 'over-forecasting' : 'under-forecasting'} />
       </div>
 
       <ChartCard
@@ -185,10 +171,10 @@ const DemandForecast = () => {
         <Card className="p-5 space-y-3">
           <div className="font-bold text-slate-800">Volume history data</div>
           <p className="text-sm text-slate-500">
-            Daily rows with <code className="bg-slate-100 px-1 rounded">date, line_id, volume, aht</code>. Importing replaces history only for the line_ids in the file. Partial weeks are ignored.
+            Daily rows with columns <code className="bg-slate-100 px-1 rounded">date, line_id, volume</code> (optional <code className="bg-slate-100 px-1 rounded">aht</code>). Importing replaces history only for the line_ids in the file. Partial weeks are ignored.
           </p>
           <div className="flex flex-wrap gap-2">
-            <FileButton accept=".csv,text/csv" onFile={importHistory}><Upload size={16} /> Import history CSV</FileButton>
+            <SchemaImportButton schemaId="volume_history">Import history (CSV/Excel)</SchemaImportButton>
             <Button variant="secondary" onClick={() => downloadCSV(volumeHistory.slice(-14), 'volume_history_template.csv', ['date', 'line_id', 'volume', 'aht'])}><FileDown size={16} /> Template</Button>
             <Button variant="secondary" onClick={() => downloadCSV(volumeHistory, `volume_history_${today()}.csv`, ['date', 'line_id', 'volume', 'aht'])}><Download size={16} /> Export all</Button>
           </div>

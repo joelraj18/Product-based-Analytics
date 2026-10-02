@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard, Database, Table, Kanban, Settings as SettingsIcon, Brush, LogOut, Menu,
-  Gauge, TrendingUp, Users, Clock, Wallet, ShieldAlert, Activity,
+  Gauge, TrendingUp, Users, Clock, Wallet, ShieldAlert, Activity, Compass, UploadCloud,
 } from 'lucide-react';
-import { ToastProvider } from './components/ui';
+import { ToastProvider, useToast } from './components/ui';
+import { HelpBox } from './components/help';
+import StartHere from './modules/StartHere';
+import UploadCenter from './modules/UploadCenter';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WorkspaceProvider, useWorkspace } from './state/workspace';
 import { load, remove } from './lib/storage';
@@ -24,6 +27,13 @@ import Projects from './modules/Projects';
 import Settings from './modules/Settings';
 
 export const NAV = [
+  {
+    group: 'Get started',
+    items: [
+      { id: 'start', label: 'Start Here', icon: Compass, component: StartHere },
+      { id: 'upload', label: 'Upload Data', icon: UploadCloud, component: UploadCenter },
+    ],
+  },
   {
     group: 'Workforce Planning',
     items: [
@@ -72,7 +82,18 @@ const NavItem = ({ icon: Icon, label, active, expanded, onClick }) => (
 
 const Shell = ({ user, onLogout }) => {
   const { plan } = useWorkspace();
-  const [active, setActive] = usePersistentState('active_module', 'hub');
+  const [active, setActive] = usePersistentState('active_module', 'start');
+  const { notify } = useToast();
+  const warnedFull = useRef(false);
+  useEffect(() => {
+    const onFull = () => {
+      if (warnedFull.current) return;
+      warnedFull.current = true;
+      notify('Browser storage is full: your latest changes work now but may not survive a reload. Download a backup in Settings, or delete large uploads you no longer need.', 'warning');
+    };
+    window.addEventListener('workx-storage-full', onFull);
+    return () => window.removeEventListener('workx-storage-full', onFull);
+  }, [notify]);
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1024);
   const current = ALL_ITEMS.find(i => i.id === active) || ALL_ITEMS[0];
   const Module = current.component;
@@ -143,6 +164,7 @@ const Shell = ({ user, onLogout }) => {
           </div>
         </header>
         <div className="flex-1 overflow-auto p-4 md:p-6">
+          <HelpBox moduleId={current.id} onNavigate={go} />
           <ErrorBoundary resetKey={current.id}>
             <Module onNavigate={go} />
           </ErrorBoundary>

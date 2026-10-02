@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import usePersistentState from '../hooks/usePersistentState';
 import { buildPlan } from '../lib/planEngine';
 import { deriveOpTargets, monthlyTotals } from '../lib/opTargets';
+import { idbGetAll, idbSet, idbDelete } from '../lib/idb';
 import {
   seedOrders, seedInventory, seedSites, seedLines, seedVolumeHistory, seedEvents,
   seedActuals, seedDefects, seedRisks, seedTasks, DEFAULT_SETTINGS,
@@ -30,6 +31,26 @@ export const WorkspaceProvider = ({ children }) => {
   const [dashboardConfig, setDashboardConfig] = usePersistentState('dashboard_config', DEFAULT_DASHBOARD);
   const [sqlHistory, setSqlHistory] = usePersistentState('sql_history', []);
   const inventory = useMemo(() => seedInventory(), []);
+
+  // Uploaded SQL tables live in IndexedDB (they can be large).
+  const [userTables, setUserTables] = useState({});
+  const [userTablesReady, setUserTablesReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    idbGetAll()
+      .then(t => { if (alive) setUserTables(t || {}); })
+      .catch(() => {})
+      .finally(() => { if (alive) setUserTablesReady(true); });
+    return () => { alive = false; };
+  }, []);
+  const saveUserTable = useCallback(async (name, table) => {
+    await idbSet(name, table);
+    setUserTables(t => ({ ...t, [name]: table }));
+  }, []);
+  const deleteUserTable = useCallback(async (name) => {
+    await idbDelete(name);
+    setUserTables(t => { const { [name]: _, ...rest } = t; return rest; });
+  }, []);
 
   const s = { ...DEFAULT_SETTINGS, ...settings };
   const plan = useMemo(
@@ -61,6 +82,7 @@ export const WorkspaceProvider = ({ children }) => {
     scenario, setScenario,
     dashboardConfig: { ...DEFAULT_DASHBOARD, ...dashboardConfig }, setDashboardConfig,
     sqlHistory, setSqlHistory,
+    userTables, userTablesReady, saveUserTable, deleteUserTable,
     plan,
     currency: s.currency,
   };

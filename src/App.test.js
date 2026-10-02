@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import App, { NAV } from './App';
 
 beforeEach(() => localStorage.clear());
@@ -25,17 +25,22 @@ test('rejects unknown users', () => {
   expect(screen.getByRole('alert')).toHaveTextContent(/not found/i);
 });
 
-test('registers and renders every module without crashing', () => {
+test('registers and renders every module without crashing', async () => {
   const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
   // jsdom has no layout, so Recharts warns about zero-size containers.
   const warns = jest.spyOn(console, 'warn').mockImplementation(() => {});
   render(<App />);
+  // Let the async IndexedDB load of uploaded tables settle.
   register();
+  await act(async () => {});
+  expect(screen.getByRole('heading', { name: 'Welcome to WorkX' })).toBeInTheDocument();
   const nav = screen.getByRole('complementary', { name: 'Main navigation' });
   NAV.flatMap(g => g.items).forEach(item => {
     fireEvent.click(within(nav).getByRole('button', { name: item.label }));
     expect(screen.queryByText('This module hit an error')).not.toBeInTheDocument();
   });
+  // Help box is present on module screens.
+  expect(screen.getByRole('button', { name: /What am I looking at/ })).toBeInTheDocument();
   expect(errors.mock.calls).toEqual([]);
   errors.mockRestore();
   warns.mockRestore();

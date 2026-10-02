@@ -29,22 +29,36 @@ Everything runs client-side. Data lives in the browser's local storage, can be i
 | Module | What it does |
 |---|---|
 | **Sales Dashboard** | KPIs, month-over-month trend, status mix and category breakdown for any order-level dataset. Columns are mapped in the UI, and every tile, bar and month drills down to records you can export. |
-| **SQL Lab** | Full SQL (JOINs, sub-queries, aggregates) over every workspace table: `orders`, `inventory`, `capacity_plan`, `volume_history`, `actuals`, `defects`, `risks`, `op_targets`, `plan_lines`, `sites`, `tasks`. Includes saved history and CSV export. |
+| **SQL Lab** | Full SQL (JOINs, sub-queries, aggregates, CASE) over every workspace table plus **your uploaded files**. It has three tabs: **Query** (with history and CSV export), **Schema** (columns, types and how tables join) and **Practice** (12 graded exercises with hints and answer checking). |
 | **Data Grid** | Inline cell editing, search, sort, add and delete rows or columns, and CSV import (replace or append) and export. |
 | **Data Cleaning** | Column profiler, plus mean/median/zero imputation (zero is treated as a real value), mode fill, IQR outlier capping, date normalisation, de-duplication, case standardisation, rename and drop. Every operation can be undone. |
 
 ### Workspace
 **Workboard** is a kanban for planning deliverables, with owner, due date, priority and overdue flags. **Settings** holds currency (INR by default; USD, EUR, GBP and others available, with no hidden conversion), plan horizon, forecast method, backup and restore, and reset to demo data.
 
-## CSV formats
+## Uploading your own data
 
-| Data | Columns |
-|---|---|
-| Volume history (daily) | `date, line_id, volume, aht` |
-| Actuals (weekly) | `week_start, line_id, forecast_volume, actual_volume, planned_aht, actual_aht, planned_hc, actual_hc, planned_shrinkage, actual_shrinkage, sl_target, sl_actual, occupancy, cost_planned, cost_actual` |
-| OP targets (monthly) | `month (YYYY-MM), op1_volume, op1_cost, op2_volume, op2_cost` |
+Open **Upload Data** in the app and drop a **CSV, TSV, TXT, JSON or Excel (.xlsx)** file, up to 20 MB. For Excel files, choose the sheet; title rows above the header are detected automatically. Files never leave your browser.
 
-Every import screen has a **Template** button that downloads a correctly shaped file.
+- **Any file → SQL table.** Save any upload as a named table. You can then query it in SQL Lab, join it with the built-in tables, and see its columns on the Schema tab. Uploaded tables are stored in the browser's IndexedDB, survive reloads, and are included in Settings → Download backup.
+- **Planning features need exact column names.** Headers are matched ignoring case and spaces, so `Line ID` = `line_id`. Extra columns are allowed. If a required column is missing, the upload is blocked and the message names it.
+
+| Dataset | Required columns | Optional columns | Feeds |
+|---|---|---|---|
+| Volume history (daily) | `date, line_id, volume` | `aht` | Demand Forecast → every planning screen |
+| Plan lines & assumptions | `id, name` | `site_id, type, aht, npt, shrinkage, occupancy, hours_per_week, attrition_monthly, training_weeks, ramp_weeks, ramp_start, temp_contract_weeks, current_hc, max_ot_pct, buffer_pct, cost_model, cost_per_hour, cost_per_unit, ot_multiplier, hire_cost, sl_target, sl_seconds` | Capacity & Headcount |
+| Weekly actuals | `week_start, line_id, actual_volume` | `forecast_volume, planned_aht, actual_aht, planned_hc, actual_hc, planned_shrinkage, actual_shrinkage, sl_target, sl_actual, occupancy, cost_planned, cost_actual` | Planning KPIs |
+| OP budget targets | `month (YYYY-MM), op1_cost, op2_cost` | `op1_volume, op2_volume` | Budget & OP |
+| Planned events | `name, start, end, uplift_pct` | `line_id` | Demand Forecast |
+| Planning defects | `date, line_id, category` | `impact_fte, status` | Planning KPIs |
+| Risk register | `title, likelihood, impact` | `line_id, owner, mitigation, status` | Scenarios & Risks |
+| Orders / sales | `date, amount` | `id, status, region, category, units` and any others | Sales Dashboard, Data Grid, Data Cleaning |
+
+The **Column reference** on the Upload page explains each column in plain English and has a downloadable template for every dataset. The files in [`demo-data/`](demo-data/) are ready-made examples.
+
+## New to planning or SQL?
+
+Start with the **Start Here** page in the app. It has a 5-step tour, a diagram of how the screens connect, and a searchable glossary (FTE, AHT, shrinkage, occupancy, Erlang C, WAPE, OP1/OP2 and more). Every screen also has a **"What am I looking at?"** box, and key numbers have **ⓘ** tips. **SQL Lab → Practice** has 12 graded exercises, from `SELECT *` to sub-queries and `CASE`.
 
 ## Demo data & findings
 

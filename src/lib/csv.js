@@ -1,6 +1,6 @@
 // RFC 4180 style parser: handles quoted fields, escaped quotes, empty fields,
 // and newlines inside quotes.
-export const parseCSVRows = (text) => {
+export const parseCSVRows = (text, delimiter = ',') => {
   const rows = [];
   let row = [];
   let field = '';
@@ -17,7 +17,7 @@ export const parseCSVRows = (text) => {
       }
     } else if (c === '"') {
       inQuotes = true;
-    } else if (c === ',') {
+    } else if (c === delimiter) {
       row.push(field); field = '';
     } else if (c === '\n' || c === '\r') {
       if (c === '\r' && src[i + 1] === '\n') i++;
@@ -32,7 +32,8 @@ export const parseCSVRows = (text) => {
 };
 
 // Convert numeric-looking strings to numbers so SQL/aggregations behave.
-const coerce = (v) => {
+// Codes with leading zeros (e.g. "00123") stay text.
+export const coerceValue = (v) => {
   const t = v.trim();
   if (t === '') return '';
   if (/^-?\d+(\.\d+)?$/.test(t) && !(t.length > 1 && t.startsWith('0') && !t.startsWith('0.'))) return Number(t);
@@ -45,7 +46,7 @@ export const parseCSV = (text, { coerceNumbers = true } = {}) => {
   const headers = rows[0].map((h, i) => h.trim() || `column_${i + 1}`);
   return rows.slice(1).map(values => headers.reduce((obj, h, i) => {
     const v = values[i] ?? '';
-    obj[h] = coerceNumbers ? coerce(v) : v;
+    obj[h] = coerceNumbers ? coerceValue(v) : v;
     return obj;
   }, {}));
 };
