@@ -1,0 +1,263 @@
+{
+  "exported_at": "2026-10-02T21:23:47.395Z",
+  "plan_horizon": {
+    "first_week": "2026-09-28",
+    "last_week": "2027-03-22",
+    "weeks": 26
+  },
+  "currency": "INR",
+  "lines": [
+    {
+      "line_id": "CS-VOICE",
+      "name": "Customer Support · Voice",
+      "site": "North Hub",
+      "type": "realtime",
+      "cost_model": "hourly",
+      "required_fte_week1": 89.6,
+      "paid_hc_week1": 156.7,
+      "peak_required_fte": 145.7,
+      "perm_hires": 25,
+      "temp_hires": 75,
+      "ot_hours": 0,
+      "weeks_over_15pct": 8,
+      "status": {
+        "status": "warning",
+        "label": "8 wk >15% over"
+      },
+      "forecast_method": "trendSeasonal",
+      "forecast_wape_pct": 1.81,
+      "variable_cost": 64667724
+    },
+    {
+      "line_id": "CS-CHAT",
+      "name": "Customer Support · Chat",
+      "site": "South Hub",
+      "type": "realtime",
+      "cost_model": "hourly",
+      "required_fte_week1": 60,
+      "paid_hc_week1": 104.3,
+      "peak_required_fte": 99.8,
+      "perm_hires": 19,
+      "temp_hires": 50,
+      "ot_hours": 98,
+      "weeks_over_15pct": 8,
+      "status": {
+        "status": "warning",
+        "label": "3 wk on OT"
+      },
+      "forecast_method": "trendSeasonal",
+      "forecast_wape_pct": 2.3,
+      "variable_cost": 41098220
+    },
+    {
+      "line_id": "PARTNER-EMAIL",
+      "name": "Partner Support · Email",
+      "site": "North Hub",
+      "type": "deferred",
+      "cost_model": "hourly",
+      "required_fte_week1": 35.2,
+      "paid_hc_week1": 57.7,
+      "peak_required_fte": 56.4,
+      "perm_hires": 7,
+      "temp_hires": 27,
+      "ot_hours": 0,
+      "weeks_over_15pct": 7,
+      "status": {
+        "status": "warning",
+        "label": "7 wk >15% over"
+      },
+      "forecast_method": "trendSeasonal",
+      "forecast_wape_pct": 2.49,
+      "variable_cost": 25475320
+    },
+    {
+      "line_id": "RETURNS-OPS",
+      "name": "Returns & Claims Ops",
+      "site": "Vendor East",
+      "type": "deferred",
+      "cost_model": "perUnit",
+      "required_fte_week1": 56.8,
+      "paid_hc_week1": 102.8,
+      "peak_required_fte": 94.9,
+      "perm_hires": 28,
+      "temp_hires": 35,
+      "ot_hours": 47,
+      "weeks_over_15pct": 8,
+      "status": {
+        "status": "warning",
+        "label": "1 wk on OT"
+      },
+      "forecast_method": "trendSeasonal",
+      "forecast_wape_pct": 2.29,
+      "variable_cost": 27904216
+    }
+  ],
+  "totals": {
+    "peak_weeks": [
+      "2026-11-16",
+      "2026-11-23",
+      "2026-11-30",
+      "2026-12-14"
+    ],
+    "peak_required_fte": 396.8,
+    "required_fte_week1": 241.6,
+    "perm_hires": 79,
+    "temp_hires": 187,
+    "ot_hours": 145,
+    "variable_cost": 159145479.33376613,
+    "variable_cost_fmt": "₹15,91,45,479",
+    "vs_op1_pct": 5.1,
+    "vs_op2_pct": 0.6,
+    "cost_per_contact": 108.24
+  },
+  "occupancy_check": [
+    {
+      "line_id": "CS-VOICE",
+      "peak_week": "2026-11-23",
+      "planned_occupancy_pct": 85,
+      "erlang_implied_occupancy_pct": 82.1
+    },
+    {
+      "line_id": "CS-CHAT",
+      "peak_week": "2026-11-23",
+      "planned_occupancy_pct": 82,
+      "erlang_implied_occupancy_pct": 79
+    }
+  ],
+  "scenario_volume_plus20": {
+    "baseline": {
+      "peak_required_fte": 396.8,
+      "weeks_short_after_ot": 0,
+      "uncovered_fte_weeks": 0,
+      "ot_hours": 145,
+      "variable_cost": 159145479,
+      "perm_hires": 79,
+      "temp_hires": 187
+    },
+    "current_hiring_plan": {
+      "peak_required_fte": 476.1,
+      "weeks_short_after_ot": 13,
+      "uncovered_fte_weeks": 56.4,
+      "ot_hours": 17497,
+      "variable_cost": 173889743,
+      "perm_hires": 79,
+      "temp_hires": 187
+    },
+    "replanned": {
+      "peak_required_fte": 476.1,
+      "weeks_short_after_ot": 3,
+      "uncovered_fte_weeks": 23.9,
+      "ot_hours": 2888,
+      "variable_cost": 188119778,
+      "perm_hires": 150,
+      "temp_hires": 171
+    }
+  },
+  "kpis_last_13_weeks": {
+    "wape_pct": 4.3,
+    "bias_pct": 0.11,
+    "service_level_pct": 82.9,
+    "sl_target_pct": 85.7,
+    "sl_weeks_met_pct": 44,
+    "occupancy_pct": 87.7,
+    "hc_adherence_pct": 99.1,
+    "shrinkage_vs_plan_pts": 0.7,
+    "cost_vs_plan_pct": 1
+  },
+  "defect_pareto": [
+    {
+      "category": "Unplanned shrinkage",
+      "count": 12,
+      "pct": 33,
+      "cumPct": 33
+    },
+    {
+      "category": "Forecast miss",
+      "count": 10,
+      "pct": 28,
+      "cumPct": 61
+    },
+    {
+      "category": "AHT drift",
+      "count": 7,
+      "pct": 19,
+      "cumPct": 81
+    },
+    {
+      "category": "Attrition above plan",
+      "count": 3,
+      "pct": 8,
+      "cumPct": 89
+    },
+    {
+      "category": "Hiring / training delay",
+      "count": 2,
+      "pct": 6,
+      "cumPct": 94
+    },
+    {
+      "category": "Data / reporting gap",
+      "count": 1,
+      "pct": 3,
+      "cumPct": 97
+    },
+    {
+      "category": "Schedule misalignment",
+      "count": 1,
+      "pct": 3,
+      "cumPct": 100
+    }
+  ],
+  "open_risks": [
+    {
+      "id": "R-1",
+      "title": "Peak-season volume above forecast",
+      "score": 15,
+      "owner": "Planning"
+    },
+    {
+      "id": "R-2",
+      "title": "Hiring class delayed by recruiting backlog",
+      "score": 12,
+      "owner": "Talent Acquisition"
+    },
+    {
+      "id": "R-3",
+      "title": "AHT increase after policy change",
+      "score": 6,
+      "owner": "Program"
+    },
+    {
+      "id": "R-4",
+      "title": "Vendor attrition above 5%/month",
+      "score": 12,
+      "owner": "Vendor Mgmt"
+    }
+  ],
+  "insights": [
+    {
+      "status": "info",
+      "text": "Customer Support · Voice: 75 seasonal hire(s) needed for peak — start class by week of 2026-09-28."
+    },
+    {
+      "status": "warning",
+      "text": "Customer Support · Chat: 98 OT hours planned (₹61,710)."
+    },
+    {
+      "status": "info",
+      "text": "Customer Support · Chat: 50 seasonal hire(s) needed for peak — start class by week of 2026-09-28."
+    },
+    {
+      "status": "info",
+      "text": "Partner Support · Email: 27 seasonal hire(s) needed for peak — start class by week of 2026-09-28."
+    },
+    {
+      "status": "warning",
+      "text": "Returns & Claims Ops: vendor needs ~47 extra hours of flex — confirm capacity in the vendor staffing review (billed per unit)."
+    },
+    {
+      "status": "info",
+      "text": "Returns & Claims Ops: 35 seasonal hire(s) needed for peak — start class by week of 2026-09-28."
+    }
+  ]
+}

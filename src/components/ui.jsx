@@ -1,0 +1,286 @@
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { CheckCircle, AlertTriangle, AlertCircle, Info, X, ChevronUp, ChevronDown, Inbox } from 'lucide-react';
+
+export const Card = ({ children, className = '', ...rest }) => (
+  <div className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`} {...rest}>
+    {children}
+  </div>
+);
+
+export const Badge = ({ children, type = 'default', className = '' }) => {
+  const styles = {
+    default: 'bg-slate-100 text-slate-700',
+    success: 'bg-emerald-100 text-emerald-800',
+    warning: 'bg-amber-100 text-amber-800',
+    danger: 'bg-rose-100 text-rose-800',
+    blue: 'bg-blue-100 text-blue-800',
+    purple: 'bg-violet-100 text-violet-800',
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${styles[type] || styles.default} ${className}`}>
+      {children}
+    </span>
+  );
+};
+
+// Status is never color alone: icon + label + color.
+const STATUS_META = {
+  good: { type: 'success', Icon: CheckCircle },
+  warning: { type: 'warning', Icon: AlertTriangle },
+  critical: { type: 'danger', Icon: AlertCircle },
+  info: { type: 'blue', Icon: Info },
+};
+export const StatusPill = ({ status = 'info', children }) => {
+  const meta = STATUS_META[status] || STATUS_META.info;
+  return <Badge type={meta.type}><meta.Icon size={12} aria-hidden="true" />{children}</Badge>;
+};
+
+export const PageHeader = ({ title, subtitle, actions }) => (
+  <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
+    <div>
+      <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
+      {subtitle && <p className="text-sm text-slate-500 mt-1 max-w-3xl">{subtitle}</p>}
+    </div>
+    {actions && <div className="flex flex-wrap gap-2 items-center">{actions}</div>}
+  </div>
+);
+
+export const KPICard = ({ title, value, sub, delta, deltaUnit = '%', goodWhenUp = true, deltaLabel = 'vs prior', icon, onClick, status }) => {
+  const hasDelta = delta !== null && delta !== undefined && Number.isFinite(Number(delta));
+  // Round first so a tiny negative never renders as a red "-0.0".
+  const shown = hasDelta ? Math.round(Number(delta) * 10) / 10 : 0;
+  const up = shown >= 0;
+  const good = shown === 0 || up === goodWhenUp;
+  const Wrapper = onClick ? 'button' : 'div';
+  return (
+    <Wrapper
+      onClick={onClick}
+      className={`text-left w-full bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between h-full ${onClick ? 'hover:shadow-md hover:border-blue-300 transition-all cursor-pointer' : ''}`}
+    >
+      <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{title}</p>
+          <div className="text-2xl font-bold text-slate-900 mt-2 truncate">{value}</div>
+        </div>
+        {icon && <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 shrink-0">{icon}</div>}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs min-h-[20px]">
+        {hasDelta && (
+          <span className={`${good ? 'text-emerald-800 bg-emerald-50' : 'text-rose-700 bg-rose-50'} px-2 py-0.5 rounded font-bold flex items-center gap-1`}>
+            {up ? <ChevronUp size={12} /> : <ChevronDown size={12} />}{`${shown > 0 ? '+' : ''}${shown.toFixed(1)}${deltaUnit}`}
+          </span>
+        )}
+        {hasDelta && <span className="text-slate-400">{deltaLabel}</span>}
+        {status}
+        {sub && <span className="text-slate-500">{sub}</span>}
+      </div>
+    </Wrapper>
+  );
+};
+
+export const ChartCard = ({ title, subtitle, actions, children, height = 300, className = '' }) => (
+  <Card className={`p-5 flex flex-col ${className}`}>
+    <div className="flex justify-between items-start gap-3 mb-3">
+      <div>
+        <h3 className="font-bold text-slate-800">{title}</h3>
+        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+      </div>
+      {actions}
+    </div>
+    <div style={{ height }} className="min-h-0 w-full">{children}</div>
+  </Card>
+);
+
+export const Field = ({ label, hint, children, className = '' }) => (
+  <label className={`block ${className}`}>
+    <span className="text-xs font-bold uppercase text-slate-500 flex justify-between gap-2">
+      <span>{label}</span>{hint && <span className="normal-case font-normal text-slate-400">{hint}</span>}
+    </span>
+    <div className="mt-1">{children}</div>
+  </label>
+);
+
+const inputBase = 'p-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+// Callers may pass their own width (w-40, w-64…); otherwise fill the parent.
+const inputCls = (className = '') => `${/(^|\s)w-/.test(className) ? '' : 'w-full'} ${inputBase} ${className}`;
+
+export const Select = ({ value, onChange, options, placeholder, className = '', ...rest }) => (
+  <select className={inputCls(className)} value={value} onChange={e => onChange(e.target.value)} {...rest}>
+    {placeholder !== undefined && <option value="">{placeholder}</option>}
+    {options.map(o => {
+      const opt = typeof o === 'object' ? o : { value: o, label: o };
+      return <option key={opt.value} value={opt.value}>{opt.label}</option>;
+    })}
+  </select>
+);
+
+export const TextInput = ({ value, onChange, className = '', ...rest }) => (
+  <input className={inputCls(className)} value={value} onChange={e => onChange(e.target.value)} {...rest} />
+);
+
+// Keeps a local string so users can type freely; commits a finite number.
+export const NumberInput = ({ value, onChange, min, max, step = 'any', className = '', ...rest }) => {
+  const [draft, setDraft] = useState(null);
+  const commit = (raw) => {
+    setDraft(null);
+    let v = Number(raw);
+    if (raw === '' || !Number.isFinite(v)) return;
+    if (min !== undefined) v = Math.max(min, v);
+    if (max !== undefined) v = Math.min(max, v);
+    onChange(v);
+  };
+  return (
+    <input
+      type="number"
+      className={inputCls(className)}
+      value={draft ?? (Number.isFinite(Number(value)) ? value : '')}
+      min={min} max={max} step={step}
+      onChange={e => {
+        const raw = e.target.value;
+        setDraft(raw);
+        if (raw !== '' && Number.isFinite(Number(raw))) onChange(Number(raw));
+      }}
+      onBlur={e => commit(e.target.value)}
+      {...rest}
+    />
+  );
+};
+
+export const Button = ({ variant = 'primary', size = 'md', className = '', children, ...rest }) => {
+  const v = {
+    primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm',
+    secondary: 'bg-white border border-slate-300 hover:bg-slate-50 text-slate-700',
+    success: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm',
+    danger: 'bg-white border border-rose-200 text-rose-700 hover:bg-rose-50',
+    ghost: 'text-slate-600 hover:bg-slate-100',
+    dark: 'bg-slate-800 hover:bg-slate-900 text-white',
+  }[variant];
+  const s = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-4 py-2 text-sm';
+  return (
+    <button type="button" className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${v} ${s} ${className}`} {...rest}>
+      {children}
+    </button>
+  );
+};
+
+export const FileButton = ({ accept, onFile, children, variant = 'primary', size = 'md' }) => {
+  const v = variant === 'secondary' ? 'bg-white border border-slate-300 hover:bg-slate-50 text-slate-700' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm';
+  const s = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-4 py-2 text-sm';
+  return (
+    <label className={`inline-flex items-center gap-2 rounded-lg font-semibold cursor-pointer transition-colors ${v} ${s}`}>
+      {children}
+      <input
+        type="file" accept={accept} className="hidden"
+        // Reset so choosing the same file again still fires onChange.
+        onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) onFile(f); }}
+      />
+    </label>
+  );
+};
+
+export const EmptyState = ({ title = 'Nothing here yet', children, icon }) => (
+  <div className="h-full min-h-[160px] flex flex-col items-center justify-center text-center text-slate-400 p-6">
+    {icon || <Inbox size={40} className="mb-3 opacity-40" />}
+    <p className="font-semibold text-slate-500">{title}</p>
+    {children && <div className="text-sm mt-1">{children}</div>}
+  </div>
+);
+
+export const Tabs = ({ tabs, value, onChange }) => (
+  <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-lg w-fit" role="tablist">
+    {tabs.map(t => {
+      const opt = typeof t === 'object' ? t : { value: t, label: t };
+      return (
+        <button
+          key={opt.value} type="button" role="tab" aria-selected={value === opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${value === opt.value ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          {opt.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+// Sortable table. columns: [{ key, label, format?, align?, render? }]
+export const DataTable = ({ columns, rows, maxHeight = 420, emptyText = 'No rows', rowClassName, initialSort }) => {
+  const [sort, setSort] = useState(initialSort || null);
+  const sorted = useMemo(() => {
+    if (!sort) return rows;
+    const { key, dir } = sort;
+    return [...rows].sort((a, b) => {
+      const x = a[key];
+      const y = b[key];
+      const nx = Number(x);
+      const ny = Number(y);
+      const cmp = Number.isFinite(nx) && Number.isFinite(ny) && x !== '' && y !== '' ? nx - ny : String(x ?? '').localeCompare(String(y ?? ''));
+      return dir === 'asc' ? cmp : -cmp;
+    });
+  }, [rows, sort]);
+  const toggle = (key) => setSort(s => (s && s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+  if (!rows.length) return <EmptyState title={emptyText} />;
+  return (
+    <div className="overflow-auto" style={{ maxHeight }}>
+      <table className="w-full text-sm">
+        <thead className="bg-slate-50 sticky top-0 z-10">
+          <tr>
+            {columns.map(c => (
+              <th key={c.key} className={`px-3 py-2 border-b text-xs font-bold text-slate-600 uppercase tracking-wide whitespace-nowrap ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
+                <button type="button" className="inline-flex items-center gap-1 hover:text-slate-900" onClick={() => toggle(c.key)}>
+                  {c.label}
+                  {sort && sort.key === c.key && (sort.dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                </button>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {sorted.map((r, i) => (
+            <tr key={r.id ?? r.key ?? i} className={`hover:bg-blue-50/50 ${rowClassName ? rowClassName(r) : ''}`}>
+              {columns.map(c => (
+                <td key={c.key} className={`px-3 py-2 whitespace-nowrap text-slate-700 ${c.align === 'right' ? 'text-right tabular-nums' : ''}`}>
+                  {c.render ? c.render(r) : c.format ? c.format(r[c.key], r) : String(r[c.key] ?? '')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// ---------- Toasts (replace blocking alert()) ----------
+const ToastContext = createContext({ notify: () => {} });
+
+export const ToastProvider = ({ children }) => {
+  const [toasts, setToasts] = useState([]);
+  const dismiss = useCallback(id => setToasts(t => t.filter(x => x.id !== id)), []);
+  const notify = useCallback((message, type = 'success') => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts(t => [...t, { id, message, type }]);
+    setTimeout(() => dismiss(id), 4500);
+  }, [dismiss]);
+  const value = useMemo(() => ({ notify }), [notify]);
+  return (
+    <ToastContext.Provider value={value}>
+      {children}
+      <div className="fixed bottom-4 right-4 z-50 space-y-2 w-80 max-w-[calc(100vw-2rem)]" aria-live="polite">
+        {toasts.map(t => {
+          const meta = { success: STATUS_META.good, error: STATUS_META.critical, warning: STATUS_META.warning, info: STATUS_META.info }[t.type] || STATUS_META.info;
+          const color = { success: 'border-l-emerald-500', error: 'border-l-rose-500', warning: 'border-l-amber-500', info: 'border-l-blue-500' }[t.type] || 'border-l-blue-500';
+          return (
+            <div key={t.id} role="status" className={`bg-white border border-slate-200 border-l-4 ${color} shadow-lg rounded-lg p-3 flex gap-2 items-start text-sm text-slate-700`}>
+              <meta.Icon size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <div className="flex-1 whitespace-pre-line">{t.message}</div>
+              <button type="button" aria-label="Dismiss" onClick={() => dismiss(t.id)} className="text-slate-400 hover:text-slate-700"><X size={14} /></button>
+            </div>
+          );
+        })}
+      </div>
+    </ToastContext.Provider>
+  );
+};
+
+export const useToast = () => useContext(ToastContext);

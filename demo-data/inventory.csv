@@ -1,0 +1,21 @@
+sku,name,category,stock,reorder_point
+SKU-500,Product A,Electronics,11,100
+SKU-501,Product B,Home,62,100
+SKU-502,Product C,Apparel,977,100
+SKU-503,Product D,Beauty,699,100
+SKU-504,Product E,Grocery,521,100
+SKU-505,Product F,Electronics,405,100
+SKU-506,Product G,Home,466,100
+SKU-507,Product H,Apparel,240,100
+SKU-508,Product I,Beauty,553,100
+SKU-509,Product J,Grocery,730,100
+SKU-510,Product K,Electronics,258,100
+SKU-511,Product L,Home,156,100
+SKU-512,Product M,Apparel,764,100
+SKU-513,Product N,Beauty,518,100
+SKU-514,Product O,Grocery,197,100
+SKU-515,Product P,Electronics,368,100
+SKU-516,Product Q,Home,293,100
+SKU-517,Product R,Apparel,535,100
+SKU-518,Product S,Beauty,296,100
+SKU-519,Product T,Grocery,978,100

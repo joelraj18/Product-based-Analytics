@@ -1,0 +1,5 @@
+aht,npt,shrinkage,occupancy,hoursPerWeek,attritionMonthly,trainingWeeks,rampWeeks,rampStart,currentHC,tempContractWeeks,maxOtPct,bufferPct,costModel,costPerHour,costPerUnit,otMultiplier,hireCost,slTarget,slSeconds,type,id,name,siteId
+360,10,30,85,40,3.5,3,4,50,95,4,10,2,hourly,450,60,1.5,25000,80,30,realtime,CS-VOICE,Customer Support · Voice,NH
+540,8,28,82,40,3,3,4,50,60,4,10,2,hourly,420,60,1.5,25000,80,60,realtime,CS-CHAT,Customer Support · Chat,SH
+480,10,30,90,40,2.5,3,4,50,36,4,10,2,hourly,480,60,1.5,25000,90,86400,deferred,PARTNER-EMAIL,Partner Support · Email,NH
+300,12,32,88,40,5,3,4,50,58,4,10,2,perUnit,380,62,1.5,25000,95,172800,deferred,RETURNS-OPS,Returns & Claims Ops,VE

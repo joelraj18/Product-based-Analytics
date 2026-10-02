@@ -1,0 +1,37 @@
+id,date,line_id,category,impact_fte,status
+DEF-117,2026-09-26,PARTNER-EMAIL,Forecast miss,0.9,Mitigated
+DEF-135,2026-09-18,RETURNS-OPS,Data / reporting gap,1.8,Root cause fixed
+DEF-126,2026-09-15,RETURNS-OPS,AHT drift,1.2,Root cause fixed
+DEF-130,2026-09-01,PARTNER-EMAIL,Attrition above plan,5.2,Open
+DEF-112,2026-08-31,CS-VOICE,Forecast miss,5.6,Open
+DEF-104,2026-08-24,PARTNER-EMAIL,Unplanned shrinkage,1.4,Open
+DEF-120,2026-08-23,RETURNS-OPS,AHT drift,4.9,Root cause fixed
+DEF-132,2026-08-14,CS-VOICE,Attrition above plan,5.5,Mitigated
+DEF-114,2026-08-06,PARTNER-EMAIL,Schedule misalignment,2,Open
+DEF-102,2026-08-05,RETURNS-OPS,Forecast miss,2.4,Root cause fixed
+DEF-127,2026-07-26,CS-CHAT,Unplanned shrinkage,1.1,Root cause fixed
+DEF-128,2026-07-20,CS-CHAT,Forecast miss,4.2,Mitigated
+DEF-133,2026-07-01,CS-CHAT,Unplanned shrinkage,1.1,Mitigated
+DEF-134,2026-06-30,CS-VOICE,Forecast miss,2.2,Root cause fixed
+DEF-131,2026-06-29,CS-VOICE,AHT drift,4,Mitigated
+DEF-118,2026-06-28,RETURNS-OPS,Unplanned shrinkage,5.6,Open
+DEF-122,2026-06-28,CS-VOICE,Unplanned shrinkage,2.6,Root cause fixed
+DEF-119,2026-06-24,CS-VOICE,Unplanned shrinkage,1.2,Open
+DEF-105,2026-06-12,PARTNER-EMAIL,Hiring / training delay,2.9,Root cause fixed
+DEF-109,2026-06-09,CS-CHAT,Hiring / training delay,2.5,Root cause fixed
+DEF-125,2026-06-08,RETURNS-OPS,Unplanned shrinkage,5.2,Mitigated
+DEF-100,2026-06-04,PARTNER-EMAIL,AHT drift,6,Open
+DEF-115,2026-06-04,CS-VOICE,Forecast miss,1.5,Open
+DEF-129,2026-06-04,CS-VOICE,Unplanned shrinkage,6.1,Root cause fixed
+DEF-116,2026-06-02,CS-VOICE,Forecast miss,5.9,Mitigated
+DEF-110,2026-05-23,RETURNS-OPS,Unplanned shrinkage,3,Root cause fixed
+DEF-121,2026-05-23,RETURNS-OPS,AHT drift,2,Root cause fixed
+DEF-108,2026-05-21,RETURNS-OPS,Unplanned shrinkage,4.1,Open
+DEF-101,2026-05-17,RETURNS-OPS,Forecast miss,3.2,Open
+DEF-113,2026-05-04,CS-CHAT,Unplanned shrinkage,0.7,Root cause fixed
+DEF-123,2026-04-29,RETURNS-OPS,Forecast miss,6,Root cause fixed
+DEF-106,2026-04-20,PARTNER-EMAIL,AHT drift,4.9,Mitigated
+DEF-111,2026-04-20,RETURNS-OPS,Attrition above plan,5.7,Open
+DEF-107,2026-04-18,RETURNS-OPS,AHT drift,5.4,Root cause fixed
+DEF-124,2026-04-17,PARTNER-EMAIL,Forecast miss,2.8,Open
+DEF-103,2026-04-12,CS-VOICE,Unplanned shrinkage,1.3,Root cause fixed

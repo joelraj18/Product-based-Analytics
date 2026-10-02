@@ -1,0 +1,4 @@
+id,name,type,timezone
+NH,North Hub,In-house,UTC+05:30
+SH,South Hub,In-house,UTC+05:30
+VE,Vendor East,Vendor,UTC+08:00
