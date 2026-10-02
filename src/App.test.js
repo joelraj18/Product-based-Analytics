@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within, act } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import App, { NAV } from './App';
 
 beforeEach(() => localStorage.clear());
@@ -30,10 +30,9 @@ test('registers and renders every module without crashing', async () => {
   // jsdom has no layout, so Recharts warns about zero-size containers.
   const warns = jest.spyOn(console, 'warn').mockImplementation(() => {});
   render(<App />);
-  // Let the async IndexedDB load of uploaded tables settle.
   register();
-  await act(async () => {});
-  expect(screen.getByRole('heading', { name: 'Welcome to WorkX' })).toBeInTheDocument();
+  // findBy waits for the async IndexedDB load of uploaded tables to settle.
+  expect(await screen.findByRole('heading', { name: 'Welcome to WorkX' })).toBeInTheDocument();
   const nav = screen.getByRole('complementary', { name: 'Main navigation' });
   NAV.flatMap(g => g.items).forEach(item => {
     fireEvent.click(within(nav).getByRole('button', { name: item.label }));
