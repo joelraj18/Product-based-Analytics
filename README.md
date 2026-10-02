@@ -52,14 +52,20 @@ Every import screen has a **Template** button that downloads a correctly shaped 
 - [`demo-data/`](demo-data/): the demo dataset and plan outputs as CSVs (re-importable into the app), `summary.json`, and an Excel workbook (`WorkX_demo_data_and_findings.xlsx`) with a Findings sheet plus one sheet per dataset.
 - Regenerate with `npm run export-demo` then `python3 scripts/build_findings_workbook.py` (needs `openpyxl`).
 
+## Live site
+
+**https://joelraj18.github.io/Product-based-Analytics/**
+
+Every push to `main` builds and deploys the site through `.github/workflows/deploy.yml`. In the repository settings, Pages → Source must be set to **GitHub Actions**. `package.json` uses `"homepage": "."` so asset paths are relative and the site works under any repository name.
+
 ## Getting started
 
 ```bash
 npm install
-npm start          # http://localhost:3000/workX
+npm start          # http://localhost:3000
 npm test           # unit tests (planning maths, CSV, Erlang C) + app smoke test
 npm run build      # production build
-npm run deploy     # publish build/ to GitHub Pages
+npm run deploy     # optional: publish build/ to a gh-pages branch instead
 ```
 
 Create a local account on the sign-in screen. Accounts are stored only in this browser and are a convenience profile, not a security boundary.
