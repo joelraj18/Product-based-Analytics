@@ -1,5 +1,5 @@
 {
-  "name": "workX",
+  "name": "workx",
   "homepage": "https://joelraj18.github.io/workX",
   "version": "0.1.0",
   "private": true,
@@ -8,12 +8,12 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "alasql": "^4.19.1",
     "lucide-react": "^0.544.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "react-scripts": "5.0.1",
-    "recharts": "^3.4.1",
-    "web-vitals": "^2.1.4"
+    "recharts": "^3.4.1"
   },
   "scripts": {
     "start": "react-scripts start",
