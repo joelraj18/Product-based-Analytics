@@ -64,7 +64,7 @@ Start with the **Start Here** page in the app. It has a 5-step tour, a diagram o
 
 ## Interview guide
 
-[`docs/INTERVIEW_GUIDE.md`](docs/INTERVIEW_GUIDE.md) explains every feature for a data analyst interview: a 60 second pitch, how each feature works and the maths behind it, limits, a demo script and 25 likely questions with answers.
+[`docs/guide.md`](docs/guide.md) explains every feature for a data analyst interview: a 60 second pitch, how each feature works and the maths behind it, limits, a demo script and 27 likely questions with answers.
 
 ## Demo data & findings
 
