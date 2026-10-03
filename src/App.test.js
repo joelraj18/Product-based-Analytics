@@ -44,3 +44,36 @@ test('registers and renders every module without crashing', async () => {
   errors.mockRestore();
   warns.mockRestore();
 });
+
+// Cells are addressed by their data-cell position, like a real sheet.
+/* eslint-disable testing-library/no-node-access */
+test('Excel Lab evaluates formulas, spills arrays and grades practice', async () => {
+  const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+  render(<App />);
+  register();
+  await screen.findByRole('heading', { name: 'Welcome to WorkX' });
+  const nav = screen.getByRole('complementary', { name: 'Main navigation' });
+  fireEvent.click(within(nav).getByRole('button', { name: 'Excel Lab' }));
+  const grid = screen.getByRole('grid', { name: 'Spreadsheet' });
+  // Select J2 and type a formula.
+  fireEvent.mouseDown(grid.querySelector('[data-cell="1,9"]'));
+  const bar = screen.getByRole('textbox', { name: 'Formula bar' });
+  fireEvent.change(bar, { target: { value: '=SEQUENCE(3)*10' } });
+  fireEvent.keyDown(bar, { key: 'Enter' });
+  expect(grid.querySelector('[data-cell="3,9"]')).toHaveTextContent('30');
+  fireEvent.click(screen.getByRole('tab', { name: 'Pivot table' }));
+  expect(screen.getAllByText('Grand Total').length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole('tab', { name: 'Practice' }));
+  const practice = screen.getByRole('grid', { name: 'Practice sheet' });
+  fireEvent.mouseDown(practice.querySelector('[data-cell="1,9"]'));
+  const bar2 = screen.getByRole('textbox', { name: 'Formula bar' });
+  fireEvent.change(bar2, { target: { value: '=SUM(C:C)' } });
+  fireEvent.keyDown(bar2, { key: 'Enter' });
+  fireEvent.click(screen.getByRole('button', { name: /Check my answer/ }));
+  expect(screen.getByRole('status')).toHaveTextContent('Correct');
+  fireEvent.click(screen.getByRole('tab', { name: /VBA, Power Query/ }));
+  expect(screen.getByRole('heading', { name: 'Your first macro' })).toBeInTheDocument();
+  expect(errors.mock.calls).toEqual([]);
+  errors.mockRestore();
+});
+/* eslint-enable testing-library/no-node-access */

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard, Database, Table, Kanban, Settings as SettingsIcon, Brush, LogOut, Menu,
-  Gauge, TrendingUp, Users, Clock, Wallet, ShieldAlert, Activity, Compass, UploadCloud,
+  Gauge, TrendingUp, Users, Clock, Wallet, ShieldAlert, Activity, Compass, UploadCloud, FileSpreadsheet,
 } from 'lucide-react';
 import { ToastProvider, useToast } from './components/ui';
 import { HelpBox } from './components/help';
@@ -21,6 +21,7 @@ import ScenarioRisk from './modules/ScenarioRisk';
 import PlanningKPIs from './modules/PlanningKPIs';
 import Dashboard from './modules/Dashboard';
 import SqlLab from './modules/SqlLab';
+import ExcelLab from './modules/ExcelLab';
 import DataGrid from './modules/DataGrid';
 import DataCleaning from './modules/DataCleaning';
 import Projects from './modules/Projects';
@@ -51,6 +52,7 @@ export const NAV = [
     items: [
       { id: 'dashboard', label: 'Sales Dashboard', icon: LayoutDashboard, component: Dashboard },
       { id: 'sql', label: 'SQL Lab', icon: Database, component: SqlLab },
+      { id: 'excel', label: 'Excel Lab', icon: FileSpreadsheet, component: ExcelLab },
       { id: 'grid', label: 'Data Grid', icon: Table, component: DataGrid },
       { id: 'cleaning', label: 'Data Cleaning', icon: Brush, component: DataCleaning },
     ],

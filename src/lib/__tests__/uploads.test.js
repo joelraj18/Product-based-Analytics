@@ -1,10 +1,11 @@
 import { SCHEMAS, SCHEMA_BY_ID, validate, normalizeHeader, suggestSchema, templateRows } from '../schemas';
 import { gridToTable, detectHeaderRow, parseTextTable, parseJsonTable } from '../fileImport';
 import { mergeImport } from '../importMerge';
-import { runSql, sameResult } from '../sqlRunner';
+import { runSql, sameResult, rewriteMinMax } from '../sqlRunner';
 import { builtinTables, sanitizeTableName } from '../sqlTables';
 import { buildPlan } from '../planEngine';
-import { PRACTICE } from '../../content/sqlPractice';
+import { PRACTICE, LEVELS } from '../../content/sqlPractice';
+import { deriveOpTargets, monthlyTotals } from '../opTargets';
 import * as seed from '../../data/seed';
 
 describe('file parsing', () => {
@@ -84,22 +85,40 @@ describe('SQL practice', () => {
   const ws = {
     orders: seed.seedOrders(), inventory: seed.seedInventory(), tasks: seed.seedTasks(), sites: seed.seedSites(), lines,
     volumeHistory: history, actuals: seed.seedActuals(lines, history), defects: seed.seedDefects(lines), risks: seed.seedRisks(),
-    opTargets: [], events: seed.seedEvents(),
+    events: seed.seedEvents(),
     plan: buildPlan({ lines, history, settings: seed.DEFAULT_SETTINGS, events: [], hiresPlan: {} }),
   };
+  ws.opTargets = deriveOpTargets(monthlyTotals(ws.plan.plans));
+  const ex = (id) => PRACTICE.find(p => p.id === id);
   const tables = builtinTables(ws);
+  test('100 exercises, 25 per level, unique ids', () => {
+    expect(PRACTICE).toHaveLength(100);
+    LEVELS.forEach(l => expect(PRACTICE.filter(p => p.level === l.id)).toHaveLength(25));
+    expect(new Set(PRACTICE.map(p => p.id)).size).toBe(100);
+  });
   test.each(PRACTICE.map(p => [p.id, p]))('%s solution runs and returns rows', (_, p) => {
     const rows = runSql(p.solution, tables);
     expect(rows.length).toBeGreaterThan(0);
+    // No column comes back undefined or NaN (alasql drops unsupported results silently).
+    Object.values(rows[0]).forEach(v => expect(v === undefined || Number.isNaN(v)).toBe(false));
     expect(sameResult(rows, runSql(p.solution, tables), p.ordered)).toBe(true);
   });
   test('sub-query exercise really filters below the average', () => {
     const avg = ws.actuals.reduce((a, r) => a + r.sl_actual, 0) / ws.actuals.length;
-    expect(runSql(PRACTICE[8].solution, tables)).toHaveLength(ws.actuals.filter(r => r.sl_actual < avg).length);
+    expect(runSql(ex('a19').solution, tables).length).toBeGreaterThan(0);
+    expect(runSql('SELECT * FROM actuals WHERE sl_actual < (SELECT AVG(sl_actual) FROM actuals)', tables)).toHaveLength(ws.actuals.filter(r => r.sl_actual < avg).length);
   });
   test('answer checking ignores aliases but not values', () => {
-    expect(sameResult(runSql('SELECT COUNT(*) AS n FROM defects', tables), runSql(PRACTICE[3].solution, tables))).toBe(true);
-    expect(sameResult(runSql('SELECT COUNT(*) FROM risks', tables), runSql(PRACTICE[3].solution, tables))).toBe(false);
+    expect(sameResult(runSql('SELECT COUNT(*) AS n FROM orders', tables), runSql(ex('b18').solution, tables))).toBe(true);
+    expect(sameResult(runSql('SELECT COUNT(*) FROM risks', tables), runSql(ex('b18').solution, tables))).toBe(false);
+  });
+  test('MIN and MAX work on text and dates, not only numbers', () => {
+    expect(rewriteMinMax("SELECT MAX(d), min (x) FROM t WHERE n = 'MAX(y)'")).toBe("SELECT WX_MAX(d), WX_MIN(x) FROM t WHERE n = 'MAX(y)'");
+    const last = runSql('SELECT MAX(week_start) AS w FROM actuals', tables)[0].w;
+    expect(last).toBe([...ws.actuals.map(a => a.week_start)].sort().pop());
+    expect(runSql("SELECT MIN(date) AS a FROM volume_history WHERE line_id = 'CS-VOICE'", tables)[0].a).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(runSql('SELECT MAX(amount) AS m FROM orders', tables)[0].m).toBe(Math.max(...ws.orders.map(o => o.amount)));
+    expect(() => runSql('SELECT MAX( FROM orders', tables)).toThrow(/MAX|Parse/);
   });
   test('uploaded table names are sanitised', () => {
     expect(sanitizeTableName('My Sales 2026.xlsx')).toBe('my_sales_2026');

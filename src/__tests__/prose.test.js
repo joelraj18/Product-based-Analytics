@@ -7,8 +7,8 @@ const path = require('path');
 const { parse } = require('@babel/parser');
 
 const SRC = path.resolve(__dirname, '..');
-const NON_PROSE_ATTRS = new Set(['className', 'href', 'src', 'id', 'type', 'accept', 'role', 'data-testid', 'value', 'key', 'htmlFor', 'autoComplete', 'list', 'stroke', 'fill', 'dataKey', 'stackId', 'layout', 'stackOffset', 'width', 'height', 'step', 'tickFormatter', 'ifOverflow', 'position', 'strokeDasharray', 'stopColor', 'offset', 'x1', 'x2', 'y1', 'y2', 'aria-live', 'aria-current', 'interval']);
-const NON_PROSE_KEYS = new Set(['sql', 'solution', 'className', 'id', 'value', 'key', 'mode', 'type', 'locale', 'symbol', 'path', 'name', 'lineId', 'line_id', 'siteId', 'month', 'start', 'end', 'date', 'due', 'week_start', 'category', 'status', 'owner', 'tag', 'priority', 'example', 'fill', 'stroke', 'currency', 'level', 'costModel', 'timezone']);
+const NON_PROSE_ATTRS = new Set(['className', 'fontFamily', 'fontSize', 'fontWeight', 'transform', 'viewBox', 'd', 'href', 'src', 'id', 'type', 'accept', 'role', 'data-testid', 'value', 'key', 'htmlFor', 'autoComplete', 'list', 'stroke', 'fill', 'dataKey', 'stackId', 'layout', 'stackOffset', 'width', 'height', 'step', 'tickFormatter', 'ifOverflow', 'position', 'strokeDasharray', 'stopColor', 'offset', 'x1', 'x2', 'y1', 'y2', 'aria-live', 'aria-current', 'interval']);
+const NON_PROSE_KEYS = new Set(['sql', 'solution', 'className', 'id', 'value', 'key', 'mode', 'type', 'locale', 'symbol', 'path', 'name', 'lineId', 'line_id', 'siteId', 'month', 'start', 'end', 'date', 'due', 'week_start', 'category', 'status', 'owner', 'tag', 'priority', 'example', 'fill', 'stroke', 'currency', 'level', 'costModel', 'timezone', 'formula', 'code', 'answer', 'cell', 'letters', 'dataset', 'syntax', 'fn', 'format']);
 const ALLOWED = new Set(['name@company.com', '••••••••', 'SELECT * FROM orders LIMIT 10']);
 
 const files = [];

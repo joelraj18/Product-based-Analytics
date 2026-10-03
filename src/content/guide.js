@@ -128,7 +128,16 @@ export const HELP = {
     steps: [
       'Query: write SQL and press Run, or use Ctrl or ⌘ with Enter\nClick a table name to preview it',
       'Schema: see every table’s columns and how tables connect',
-      'Practice: guided exercises from basic SELECT to JOINs, with hints and answer checking',
+      'Practice: 100 graded exercises in four levels, from `SELECT` to analyst questions for leadership',
+    ],
+  },
+  excel: {
+    purpose: 'Work and practise in a spreadsheet that runs real Excel formulas on your data, with pivot tables and lessons for VBA, Power Query and DAX',
+    steps: [
+      'Sheet: pick a dataset, click an empty cell to the right of the data and type a formula such as `=SUMIFS(C:C,F:F,"North")`\nDynamic arrays like `FILTER` and `UNIQUE` spill into the cells below, outlined in blue',
+      'Pivot table: choose Rows, Columns, Values and a filter, and see the matching `SUMIFS` formula',
+      'Practice: graded exercises from `SUM` to `SUMPRODUCT`, plus pivot tasks\nDownload the practice workbook to repeat them in desktop Excel',
+      'VBA, Power Query and DAX: lessons with code to copy into desktop Excel, a task and an answer',
     ],
   },
   grid: {

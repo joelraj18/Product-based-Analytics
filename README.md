@@ -29,7 +29,8 @@ Everything runs client-side. Data lives in the browser's local storage, can be i
 | Module | What it does |
 |---|---|
 | **Sales Dashboard** | KPIs, month-over-month trend, status mix and category breakdown for any order-level dataset. Columns are mapped in the UI, and every tile, bar and month drills down to records you can export. |
-| **SQL Lab** | Full SQL (JOINs, sub-queries, aggregates, CASE) over every workspace table plus **your uploaded files**. It has three tabs: **Query** (with history and CSV export), **Schema** (columns, types and how tables join) and **Practice** (12 graded exercises with hints and answer checking). |
+| **SQL Lab** | Full SQL (JOINs, sub-queries, CTEs, window functions, CASE) over every workspace table plus **your uploaded files**. The sidebar shows every table's column names in order with an example row (click a column to insert it). A **Schema reference** button in the editor pops up a visual diagram of how tables connect (hover to peek, click to pin). Tabs: **Query** (history, CSV export), **Schema** (diagram and column previews) and **Practice** (**100 graded exercises** in four levels: Beginner, Intermediate, Advanced, Analyst & Executive). |
+| **Excel Lab** | A live spreadsheet that runs real Excel formulas (over 100 functions including `SUMIFS`, `XLOOKUP`, `INDEX/MATCH`, `SUMPRODUCT`, `TEXT`, `EOMONTH`) and **dynamic arrays** (`FILTER`, `SORT`, `UNIQUE`, `SEQUENCE`, `LET`) that spill like Excel 365, on any workspace or uploaded table. Tabs: **Sheet**, **Pivot table** (rows, columns, values, filter, % of total, plus the equivalent `SUMIFS`), **Practice** (66 auto-graded formula and pivot exercises, and a downloadable practice workbook) and **VBA, Power Query & DAX** (32 guided lessons with code to run in desktop Excel). |
 | **Data Grid** | Inline cell editing, search, sort, add and delete rows or columns, and CSV import (replace or append) and export. |
 | **Data Cleaning** | Column profiler, plus mean/median/zero imputation (zero is treated as a real value), mode fill, IQR outlier capping, date normalisation, de-duplication, case standardisation, rename and drop. Every operation can be undone. |
 
@@ -58,7 +59,7 @@ The **Column reference** on the Upload page explains each column in plain Englis
 
 ## New to planning or SQL?
 
-Start with the **Start Here** page in the app. It has a 5-step tour, a diagram of how the screens connect, and a searchable glossary (FTE, AHT, shrinkage, occupancy, Erlang C, WAPE, OP1/OP2 and more). Every screen also has a **"What am I looking at?"** box, and key numbers have **ⓘ** tips. **SQL Lab → Practice** has 12 graded exercises, from `SELECT *` to sub-queries and `CASE`.
+Start with the **Start Here** page in the app. It has a 5-step tour, a diagram of how the screens connect, and a searchable glossary (FTE, AHT, shrinkage, occupancy, Erlang C, WAPE, OP1/OP2 and more). Every screen also has a **"What am I looking at?"** box, and key numbers have **ⓘ** tips. **SQL Lab → Practice** has 100 graded exercises from `SELECT *` to analyst questions for leadership, and **Excel Lab → Practice** has 66 graded formula and pivot exercises plus VBA, Power Query and DAX lessons.
 
 ## Demo data & findings
 
@@ -93,6 +94,8 @@ src/
   lib/                      pure, unit-tested logic
     forecast.js  erlang.js  capacity.js  budget.js  planEngine.js
     kpis.js  stats.js  csv.js  dates.js  format.js  storage.js  theme.js
+    excel/                  formula parser, evaluator (spill, errors), 115 functions, pivot, grading
+  content/                  guide text, SQL and Excel practice, VBA / Power Query / DAX lessons
   data/seed.js              deterministic demo dataset
   components/               shared UI (cards, tables, inputs, toasts, error boundary)
   modules/                  one file per screen
