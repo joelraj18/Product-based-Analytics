@@ -7,6 +7,7 @@ Run `npm run export-demo` first, then:
 Requires openpyxl (pip install openpyxl).
 """
 import csv
+import gzip
 import json
 import re
 from pathlib import Path
@@ -43,11 +44,14 @@ PCT = '0.0%;(0.0%);-'
 
 
 def read_csv(name):
-    with open(DATA / name, newline='', encoding='utf-8') as f:
+    opener = gzip.open if name.endswith('.gz') else open
+    with opener(DATA / name, 'rt', newline='', encoding='utf-8') as f:
         rows = list(csv.DictReader(f))
     for r in rows:
         for k, v in r.items():
-            if re.fullmatch(r'-?\d+', v or '') and not (len(v) > 1 and v.startswith('0')):
+            if v == '':
+                r[k] = None
+            elif re.fullmatch(r'-?\d+', v or '') and not (len(v) > 1 and v.startswith('0')):
                 r[k] = int(v)
             elif re.fullmatch(r'-?\d+\.\d+', v or ''):
                 r[k] = float(v)
@@ -317,7 +321,7 @@ def main():
     data_sheet(wb, 'Plan Lines', read_csv('plan_lines.csv'), note='Planning assumptions per program/queue (AHT in seconds, rates in %).')
     data_sheet(wb, 'Events', read_csv('events.csv'))
     data_sheet(wb, 'OP Targets', read_csv('op_targets.csv'))
-    data_sheet(wb, 'Orders', read_csv('orders.csv'))
+    data_sheet(wb, 'Orders', read_csv('orders.csv.gz'))
     data_sheet(wb, 'Volume History', read_csv('volume_history_daily.csv'), note='Daily contacts and AHT per line (3 years). Re-importable in Demand Forecast.')
     for ws in wb.worksheets:
         ws.sheet_view.showGridLines = ws.title not in ('Findings', 'Summary KPIs')

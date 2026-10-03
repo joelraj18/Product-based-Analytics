@@ -10,7 +10,7 @@ volume history ─► demand forecast ─► required FTE ─► headcount & hir
                          actuals ─► planning KPIs ─► defects / RCA ─► weekly review
 ```
 
-Everything runs client-side. Data lives in the browser's local storage, can be imported and exported as CSV, and can be backed up or restored as JSON. A realistic demo dataset loads on first sign-in, so you can explore every screen right away. It includes about 12,000 orders from January 2024 to December 2026, with growth, festive peaks, sale events and repeat customers.
+Everything runs client-side. Data lives in the browser's local storage, can be imported and exported as CSV, and can be backed up or restored as JSON. A realistic demo dataset loads on first sign-in, so you can explore every screen right away. It includes 100,000 simulated orders from December 2024 to December 2026, with growth, festive peaks, sale events, repeat customers, sales channels, payment methods, discounts and delivery times. The sample is rebuilt from a fixed seed on every visit instead of being saved, because 100,000 rows is more than local storage holds; once you upload or edit orders, your own rows are saved in IndexedDB.
 
 ## Modules
 
@@ -54,7 +54,7 @@ Open **Upload Data** in the app and drop a **CSV, TSV, TXT, JSON or Excel (.xlsx
 | Planned events | `name, start, end, uplift_pct` | `line_id` | Demand Forecast |
 | Planning defects | `date, line_id, category` | `impact_fte, status` | Planning KPIs |
 | Risk register | `title, likelihood, impact` | `line_id, owner, mitigation, status` | Scenarios & Risks |
-| Orders / sales | `date, amount` | `id, status, region, category, units, customer_id` and any others | Sales Dashboard, Product Analytics (cohorts and RFM need `customer_id`), Data Grid, Data Cleaning |
+| Orders / sales | `date, amount` | `id, status, region, category, units, customer_id, channel, payment_method, discount, delivery_days` and any others | Sales Dashboard, Product Analytics (cohorts and RFM need `customer_id`), Data Grid, Data Cleaning |
 
 The **Column reference** on the Upload page explains each column in plain English and has a downloadable template for every dataset. The files in [`demo-data/`](demo-data/) are ready-made examples.
 

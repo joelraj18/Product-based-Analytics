@@ -6,7 +6,7 @@ import { Settings, ArrowLeft, Banknote, CheckCircle, Clock, Package, Download } 
 import { Card, KPICard, ChartCard, Field, Select, Button, DataTable, EmptyState, PageHeader, StatusPill } from '../components/ui';
 import { useWorkspace } from '../state/workspace';
 import { columnsOf, downloadCSV } from '../lib/csv';
-import { toNumber, pctChange, sum } from '../lib/stats';
+import { toNumber, pctChange, sum, maxOf } from '../lib/stats';
 import { parseDate, monthKey, monthLabel, isoDate } from '../lib/dates';
 import { formatCurrency, formatCompact, formatNumber } from '../lib/format';
 import { SERIES, AXIS_PROPS, GRID_PROPS, TOOLTIP_PROPS, clickedRow, CHART_INIT } from '../lib/theme';
@@ -96,7 +96,7 @@ const Dashboard = ({ onNavigate }) => {
     // before (month to date), otherwise every partial month looks like a drop.
     const dayOf = (r) => Number(String(isoOf(r[config.dateCol])).slice(8, 10));
     const baseRows = base ? slice(base) : [];
-    const lastDay = baseRows.length ? Math.max(...baseRows.map(dayOf)) : 0;
+    const lastDay = baseRows.length ? maxOf(baseRows.map(dayOf)) : 0;
     const monthEnd = base ? new Date(Date.UTC(Number(base.slice(0, 4)), Number(base.slice(5, 7)), 0)).getUTCDate() : 0;
     const partial = base === months[months.length - 1] && lastDay < monthEnd;
     if (base && prevMonth) {
@@ -128,7 +128,7 @@ const Dashboard = ({ onNavigate }) => {
         <div className="flex flex-wrap justify-between items-center gap-2">
           <Button variant="dark" onClick={() => setDrillDown(null)}><ArrowLeft size={16} /> Back to dashboard</Button>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-slate-500">{title} · {rows.length} records</span>
+            <span className="text-sm font-bold text-slate-500">{title} · {rows.length.toLocaleString('en-IN')} records</span>
             <Button variant="secondary" size="sm" onClick={() => downloadCSV(clean, `drilldown_${drillDown.replace(/[^a-z0-9]+/gi, '_')}.csv`, columns)}><Download size={14} /> CSV</Button>
           </div>
         </div>
@@ -154,7 +154,7 @@ const Dashboard = ({ onNavigate }) => {
       {showConfig && <ConfigPanel columns={columns} config={config} setConfig={setConfig} />}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Total value" value={formatCurrency(metrics.rev, currency)} delta={metrics.growth.rev} deltaLabel={metrics.compare} icon={<Banknote className="text-emerald-600" size={20} />} onClick={() => setDrillDown('revenue')} />
+        <KPICard title="Total value" value={metrics.rev >= 1e7 ? formatCompact(metrics.rev, currency) : formatCurrency(metrics.rev, currency)} sub={metrics.rev >= 1e7 ? formatCurrency(metrics.rev, currency) : undefined} delta={metrics.growth.rev} deltaLabel={metrics.compare} icon={<Banknote className="text-emerald-600" size={20} />} onClick={() => setDrillDown('revenue')} />
         <KPICard title="Shipped / delivered" value={formatNumber(metrics.done)} delta={metrics.growth.done} deltaLabel={metrics.compare} icon={<CheckCircle className="text-blue-600" size={20} />} onClick={() => setDrillDown('done')} />
         <KPICard title="Pending" value={formatNumber(metrics.pending)} delta={metrics.growth.pending} goodWhenUp={false} deltaLabel={metrics.compare} icon={<Clock className="text-amber-600" size={20} />} onClick={() => setDrillDown('pending')} />
         <KPICard title="Avg order value" value={formatCurrency(metrics.aov, currency)} delta={metrics.growth.aov} deltaLabel={metrics.compare} sub="click: top 50" icon={<Package className="text-indigo-600" size={20} />} onClick={() => setDrillDown('top')} />

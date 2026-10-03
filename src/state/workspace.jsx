@@ -1,18 +1,69 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import usePersistentState from '../hooks/usePersistentState';
 import { buildPlan } from '../lib/planEngine';
 import { deriveOpTargets, monthlyTotals } from '../lib/opTargets';
 import { idbGetAll, idbSet, idbDelete } from '../lib/idb';
 import {
-  seedOrders, seedInventory, seedSites, seedLines, seedVolumeHistory, seedEvents,
-  seedActuals, seedDefects, seedRisks, seedTasks, DEFAULT_SETTINGS, ORDERS_SAMPLE_VERSION,
+  demoOrders, seedInventory, seedSites, seedLines, seedVolumeHistory, seedEvents,
+  seedActuals, seedDefects, seedRisks, seedTasks, DEFAULT_SETTINGS,
 } from '../data/seed';
-import { load, save } from '../lib/storage';
+import { load, save, remove } from '../lib/storage';
+import { isOldDemoOrders, loadUserOrders, saveUserOrders, clearUserOrders } from '../lib/ordersStore';
 
-// The first demo sample had 400 orders with ids ORD-10000 to ORD-10399.
-// Browsers that still hold it untouched get the larger 2024 to 2026 sample;
-// orders a user uploaded or edited are never replaced.
-const isOldDemoOrders = (rows) => Array.isArray(rows) && rows.length === 400 && rows.every(r => /^ORD-10[0-3]\d\d$/.test(String(r && r.id)));
+// The orders table: the 100,000 row demo sample (rebuilt from a seed, never
+// saved) until the user uploads, edits or cleans orders; from then on their
+// rows are saved to IndexedDB. Older versions kept orders in localStorage:
+// an old demo there is dropped, real user orders move to IndexedDB once.
+const initialOrders = () => {
+  const source = load('orders_source', null);
+  if (source === 'user') return { source, rows: [], ready: false };
+  if (source === 'demo') return { source, rows: demoOrders(), ready: true };
+  const legacy = load('db_orders', undefined);
+  if (Array.isArray(legacy) && legacy.length && !isOldDemoOrders(legacy)) return { source: 'user', rows: legacy, ready: true, migrate: true };
+  return { source: 'demo', rows: demoOrders(), ready: true };
+};
+
+const useOrders = () => {
+  const [state, setState] = useState(initialOrders);
+  const dirty = useRef(Boolean(state.migrate));
+  const fail = () => { try { window.dispatchEvent(new CustomEvent('workx-storage-full', { detail: { key: 'orders' } })); } catch { /* non-browser */ } };
+
+  useEffect(() => {
+    save('orders_source', state.source);
+    if (!state.migrate) remove('db_orders');
+    if (state.source !== 'user' || state.ready) return undefined;
+    let alive = true;
+    loadUserOrders()
+      .then(rows => { if (alive) setState(rows ? { source: 'user', rows, ready: true } : { source: 'demo', rows: demoOrders(), ready: true }); })
+      .catch(() => { if (alive) setState({ source: 'demo', rows: demoOrders(), ready: true }); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => { save('orders_source', state.source); }, [state.source]);
+
+  // Saves the user's orders a moment after the last change, so a burst of
+  // edits writes once.
+  useEffect(() => {
+    if (!dirty.current || state.source !== 'user') return undefined;
+    const t = setTimeout(() => {
+      dirty.current = false;
+      saveUserOrders(state.rows).then(() => remove('db_orders')).catch(fail);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [state]);
+
+  const setOrders = useCallback((next) => {
+    dirty.current = true;
+    setState(s => ({ source: 'user', ready: true, rows: typeof next === 'function' ? next(s.rows) : next }));
+  }, []);
+  const resetOrders = useCallback(() => {
+    dirty.current = false;
+    setState({ source: 'demo', rows: demoOrders(), ready: true });
+    clearUserOrders().catch(() => {});
+  }, []);
+  return { orders: state.rows, setOrders, resetOrders, ordersSource: state.source, ordersReady: state.ready };
+};
 
 const WorkspaceContext = createContext(null);
 
@@ -22,13 +73,7 @@ export { deriveOpTargets, monthlyTotals };
 
 export const WorkspaceProvider = ({ children }) => {
   const [settings, setSettings] = usePersistentState('settings', DEFAULT_SETTINGS);
-  const [orders, setOrders] = usePersistentState('db_orders', seedOrders);
-  useEffect(() => {
-    if (load('orders_sample_version', 0) >= ORDERS_SAMPLE_VERSION) return;
-    if (isOldDemoOrders(orders)) setOrders(seedOrders());
-    save('orders_sample_version', ORDERS_SAMPLE_VERSION);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { orders, setOrders, resetOrders, ordersSource, ordersReady } = useOrders();
   const [sites, setSites] = usePersistentState('sites', seedSites);
   const [lines, setLines] = usePersistentState('plan_lines', seedLines);
   const [volumeHistory, setVolumeHistory] = usePersistentState('volume_history', () => seedVolumeHistory());
@@ -79,7 +124,7 @@ export const WorkspaceProvider = ({ children }) => {
 
   const value = {
     settings: s, setSettings,
-    orders, setOrders,
+    orders, setOrders, resetOrders, ordersSource, ordersReady,
     inventory,
     sites, setSites,
     lines, setLines,

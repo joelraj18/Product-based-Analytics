@@ -1,4 +1,5 @@
 // Pivot table: group rows by up to two fields and summarise one value field.
+import { minOf, maxOf } from '../stats';
 export const AGGREGATIONS = ['Sum', 'Count', 'Average', 'Min', 'Max', 'Distinct count'];
 
 const isBlank = (v) => v === null || v === undefined || v === '';
@@ -12,8 +13,8 @@ const summarise = (values, agg) => {
   if (agg === 'Sum') return n.reduce((s, x) => s + x, 0);
   if (!n.length) return null;
   if (agg === 'Average') return n.reduce((s, x) => s + x, 0) / n.length;
-  if (agg === 'Min') return Math.min(...n);
-  if (agg === 'Max') return Math.max(...n);
+  if (agg === 'Min') return minOf(n);
+  if (agg === 'Max') return maxOf(n);
   return null;
 };
 

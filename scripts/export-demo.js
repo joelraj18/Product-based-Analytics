@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const babel = require('@babel/core');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -58,7 +59,13 @@ const actuals = seed.seedActuals(lines, history);
 const defects = seed.seedDefects(lines);
 const risks = seed.seedRisks();
 
-writeCSV('orders.csv', seed.seedOrders());
+// 100,000 orders is about 10 MB as CSV, so the full table is gzipped and a
+// small preview sits next to it.
+const orders = seed.seedOrders();
+fs.writeFileSync(path.join(OUT, 'orders.csv.gz'), zlib.gzipSync(`${toCSV(orders)}\n`, { level: 9 }));
+written.push(`orders.csv.gz (${orders.length} rows)`);
+fs.rmSync(path.join(OUT, 'orders.csv'), { force: true });
+writeCSV('orders_sample.csv', orders.slice(0, 5000));
 writeCSV('inventory.csv', seed.seedInventory());
 writeCSV('sites.csv', sites);
 writeCSV('plan_lines.csv', lines.map(({ baseWeekly, ...l }) => l));

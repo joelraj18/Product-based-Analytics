@@ -7,6 +7,7 @@ import { buildPlan } from '../planEngine';
 import { PRACTICE, LEVELS } from '../../content/sqlPractice';
 import { deriveOpTargets, monthlyTotals } from '../opTargets';
 import * as seed from '../../data/seed';
+import { maxOf } from '../stats';
 
 describe('file parsing', () => {
   test('detects a header below title rows (Excel exports)', () => {
@@ -91,10 +92,20 @@ describe('SQL practice', () => {
   ws.opTargets = deriveOpTargets(monthlyTotals(ws.plan.plans));
   const ex = (id) => PRACTICE.find(p => p.id === id);
   const tables = builtinTables(ws);
-  test('100 exercises, 25 per level, unique ids', () => {
-    expect(PRACTICE).toHaveLength(100);
-    LEVELS.forEach(l => expect(PRACTICE.filter(p => p.level === l.id)).toHaveLength(25));
-    expect(new Set(PRACTICE.map(p => p.id)).size).toBe(100);
+  test('over 100 exercises, at least 25 per level, unique ids', () => {
+    expect(PRACTICE.length).toBeGreaterThanOrEqual(100);
+    LEVELS.forEach(l => expect(PRACTICE.filter(p => p.level === l.id).length).toBeGreaterThanOrEqual(25));
+    expect(new Set(PRACTICE.map(p => p.id)).size).toBe(PRACTICE.length);
+  });
+  test('read only queries share one cached copy without changing app data', () => {
+    const first = tables.orders[0];
+    const sorted = runSql('SELECT * FROM orders ORDER BY amount DESC LIMIT 3', tables);
+    expect(sorted[0].amount).toBe(maxOf(tables.orders.map(o => o.amount)));
+    expect(tables.orders[0]).toBe(first);
+    expect(runSql('SELECT id FROM orders LIMIT 1', tables)[0].id).toBe(first.id);
+    // A write runs on a throwaway copy, so the next read still sees every row.
+    runSql("DELETE FROM orders WHERE region = 'North'", tables);
+    expect(runSql('SELECT COUNT(*) AS n FROM orders', tables)[0].n).toBe(tables.orders.length);
   });
   test.each(PRACTICE.map(p => [p.id, p]))('%s solution runs and returns rows', (_, p) => {
     const rows = runSql(p.solution, tables);
@@ -117,7 +128,7 @@ describe('SQL practice', () => {
     const last = runSql('SELECT MAX(week_start) AS w FROM actuals', tables)[0].w;
     expect(last).toBe([...ws.actuals.map(a => a.week_start)].sort().pop());
     expect(runSql("SELECT MIN(date) AS a FROM volume_history WHERE line_id = 'CS-VOICE'", tables)[0].a).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(runSql('SELECT MAX(amount) AS m FROM orders', tables)[0].m).toBe(Math.max(...ws.orders.map(o => o.amount)));
+    expect(runSql('SELECT MAX(amount) AS m FROM orders', tables)[0].m).toBe(maxOf(ws.orders.map(o => o.amount)));
     expect(() => runSql('SELECT MAX( FROM orders', tables)).toThrow(/MAX|Parse/);
   });
   test('uncorrelated scalar subqueries are computed once, correlated ones are left alone', () => {

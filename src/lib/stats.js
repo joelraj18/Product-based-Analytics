@@ -18,6 +18,11 @@ export const isMissing = (v) =>
 
 export const numericValues = (rows, col) => rows.map(r => toNumber(r[col])).filter(Number.isFinite);
 
+// Loops instead of Math.min(...arr): spreading 100,000 values into one call
+// can overflow the call stack.
+export const minOf = (arr) => { let m = Infinity; for (let i = 0; i < arr.length; i++) if (arr[i] < m) m = arr[i]; return m; };
+export const maxOf = (arr) => { let m = -Infinity; for (let i = 0; i < arr.length; i++) if (arr[i] > m) m = arr[i]; return m; };
+
 export const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 export const mean = (arr) => (arr.length ? sum(arr) / arr.length : NaN);
 

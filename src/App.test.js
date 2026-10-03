@@ -55,17 +55,17 @@ test('Excel Lab evaluates formulas, spills arrays and grades practice', async ()
   const nav = screen.getByRole('complementary', { name: 'Main navigation' });
   fireEvent.click(within(nav).getByRole('button', { name: 'Excel Lab' }));
   const grid = screen.getByRole('grid', { name: 'Spreadsheet' });
-  // Select J2 and type a formula.
-  fireEvent.mouseDown(grid.querySelector('[data-cell="1,9"]'));
+  // Select N2 (the first free column) and type a formula.
+  fireEvent.mouseDown(grid.querySelector('[data-cell="1,13"]'));
   const bar = screen.getByRole('textbox', { name: 'Formula bar' });
   fireEvent.change(bar, { target: { value: '=SEQUENCE(3)*10' } });
   fireEvent.keyDown(bar, { key: 'Enter' });
-  expect(grid.querySelector('[data-cell="3,9"]')).toHaveTextContent('30');
+  expect(grid.querySelector('[data-cell="3,13"]')).toHaveTextContent('30');
   fireEvent.click(screen.getByRole('tab', { name: 'Pivot table' }));
   expect(screen.getAllByText('Grand Total').length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole('tab', { name: 'Practice' }));
   const practice = screen.getByRole('grid', { name: 'Practice sheet' });
-  fireEvent.mouseDown(practice.querySelector('[data-cell="1,9"]'));
+  fireEvent.mouseDown(practice.querySelector('[data-cell="1,13"]'));
   const bar2 = screen.getByRole('textbox', { name: 'Formula bar' });
   fireEvent.change(bar2, { target: { value: '=SUM(C:C)' } });
   fireEvent.keyDown(bar2, { key: 'Enter' });

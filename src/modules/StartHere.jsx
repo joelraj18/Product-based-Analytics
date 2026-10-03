@@ -19,7 +19,7 @@ const FLOW = ['Volume history', 'Forecast', 'Required FTE', 'Hiring plan', 'Cost
 const FAQ = [
   ['Where is my data stored?', 'Only in this browser, in its local storage and IndexedDB\nNothing is sent to a server\nUse Settings → Download backup to keep a copy or move it to another computer'],
   ['Can I use my own data?', 'Yes, go to Upload Data\nAny CSV or Excel file can be loaded as a SQL table\nFiles for planning screens need the exact column names shown in the Column reference, so download a template, fill it in and upload it'],
-  ['What is the demo data?', 'A realistic but made up business: a support operation with 4 queues at 3 sites (3 years of daily volume, weekly actuals, defects and risks) and about 12,000 e commerce orders from January 2024 to December 2026 with growth, festive peaks and sale events\nIt is regenerated the same way every time'],
+  ['What is the demo data?', 'A realistic but made up business: a support operation with 4 queues at 3 sites (3 years of daily volume, weekly actuals, defects and risks) and 100,000 e commerce orders from December 2024 to December 2026 with growth, festive peaks, sale events, channels, payment methods and delivery times\nThe orders are simulated fresh on every visit and never saved, so the sample is always complete\nOnce you upload or edit orders, yours are saved in this browser instead'],
   ['I broke something, how do I start over?', 'Use Settings → Reset to demo data\nYour login is kept, while uploaded tables and changes are cleared'],
   ['Do I need to know SQL or statistics?', 'No, every screen has a “What am I looking at?” box and ⓘ tips that explain terms in plain English\nSQL Lab has guided practice exercises if you want to learn'],
 ];

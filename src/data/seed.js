@@ -8,22 +8,31 @@ const anchor = () => weekStart(new Date()); // Monday of this week
 const historyEnd = () => addDays(anchor(), -1); // last complete Sunday
 
 // ---------- Generic order analytics dataset ----------
-// A made up but realistic e-commerce sample, January 2024 to December 2026
-// (about 11,000 orders). Daily volume follows growth, a weekly rhythm, the
-// festive season and a few sale events, so dashboards show real patterns.
+// A made up but realistic e-commerce sample of exactly 100,000 orders from
+// December 2024 to December 2026. Daily volume follows growth, a weekly
+// rhythm, the festive season and sale events, so dashboards show real
+// patterns. It is regenerated from a fixed seed on every load instead of
+// being saved, because 100,000 rows is far more than localStorage holds.
 const REGIONS = ['North', 'South', 'East', 'West'];
 const CATEGORIES = ['Electronics', 'Home', 'Apparel', 'Beauty', 'Grocery'];
-export const ORDERS_START = '2024-01-01';
+const CHANNELS = ['App', 'Web', 'Marketplace'];
+const PAYMENTS = ['UPI', 'Card', 'Wallet', 'COD'];
+export const ORDERS_START = '2024-12-01';
 export const ORDERS_END = '2026-12-31';
-export const ORDERS_SAMPLE_VERSION = 2;
+export const ORDERS_TARGET = 100000;
+export const ORDER_COLUMNS = ['id', 'date', 'amount', 'units', 'status', 'region', 'category', 'fulfillment_center', 'customer_id', 'channel', 'payment_method', 'discount', 'delivery_days'];
 
 const MONTH_SEASON = [0.86, 0.84, 0.94, 0.96, 1.0, 1.0, 1.06, 1.0, 1.04, 1.32, 1.42, 1.22];
 const WEEKDAY = [0.92, 0.94, 0.97, 1.0, 1.07, 1.18, 1.12]; // Mon to Sun
 // Sale windows by month and day: [month (1 to 12), first day, last day, lift].
 const SALES = [[1, 26, 26, 1.6], [7, 12, 15, 2.1], [10, 3, 9, 2.3], [11, 27, 30, 1.9], [12, 24, 26, 1.5]];
 const PRICE = { Electronics: 2600, Home: 950, Apparel: 700, Beauty: 420, Grocery: 240 };
+const REGION_DAYS = { North: 3.1, South: 2.5, East: 3.7, West: 2.8 }; // typical delivery days
+const FC_DAYS = [0, -0.3, 0, 0.2, 1.1, 0, -0.2, 0.4, 0.6]; // by FC number; FC-4 is the slow one
 const pickWeighted = (rng, items, weights) => {
-  let r = rng.next() * weights.reduce((a, b) => a + b, 0);
+  let total = 0;
+  for (let i = 0; i < weights.length; i++) total += weights[i];
+  let r = rng.next() * total;
   for (let i = 0; i < items.length; i++) { r -= weights[i]; if (r <= 0) return items[i]; }
   return items[items.length - 1];
 };
@@ -32,64 +41,103 @@ export const seedOrders = () => {
   const rng = makeRng(42);
   const start = parseDate(ORDERS_START);
   const days = Math.round((parseDate(ORDERS_END) - start) / 86400000) + 1;
-  const orders = [];
+  // Pass 1: the shape of daily demand. Pass 2 scales it so the sample has
+  // exactly ORDERS_TARGET orders (cumulative rounding keeps the total exact).
+  const shape = [];
   for (let d = 0; d < days; d++) {
     const date = addDays(start, d);
-    const iso = isoDate(date);
     const m = date.getUTCMonth();
     const dom = date.getUTCDate();
-    const years = d / 365;
     const sale = SALES.find(([sm, a, b]) => sm === m + 1 && dom >= a && dom <= b);
-    const lambda = 6.4 * 1.27 ** years * MONTH_SEASON[m] * WEEKDAY[dowIndex(date)] * (sale ? sale[3] : 1);
-    const n = Math.max(0, Math.round(lambda * (0.78 + 0.44 * rng.next())));
+    const lambda = 1.27 ** (d / 365) * MONTH_SEASON[m] * WEEKDAY[dowIndex(date)] * (sale ? sale[3] : 1);
+    shape.push({ iso: isoDate(date), sale: !!sale, w: lambda * (0.78 + 0.44 * rng.next()) });
+  }
+  const scale = ORDERS_TARGET / shape.reduce((s, x) => s + x.w, 0);
+  const orders = [];
+  let cum = 0;
+  for (let d = 0; d < days; d++) {
+    const { iso, sale, w } = shape[d];
+    const n = Math.round((cum + w) * scale) - Math.round(cum * scale);
+    cum += w;
+    const years = d / 365;
     const left = days - d; // the last few days of the sample are still in flight
     for (let k = 0; k < n; k++) {
-      // Electronics and the South region grow faster, so the mix shifts over time.
+      // Electronics, the South region, the app and UPI grow, so mixes shift over time.
       const category = pickWeighted(rng, CATEGORIES, [0.2 + 0.05 * years, 0.2, 0.22, 0.17, 0.21 - 0.02 * years]);
       const region = pickWeighted(rng, REGIONS, [0.26, 0.24 + 0.04 * years, 0.27, 0.23 - 0.02 * years]);
+      const channel = pickWeighted(rng, CHANNELS, [0.42 + 0.08 * years, 0.38 - 0.05 * years, 0.2 - 0.03 * years]);
+      const payment = pickWeighted(rng, PAYMENTS, [0.38 + 0.06 * years, 0.24, 0.12, 0.26 - 0.06 * years]);
       const units = pickWeighted(rng, [1, 2, 3, 4, 5], [0.38, 0.27, 0.17, 0.11, 0.07]);
-      const price = PRICE[category] * 1.04 ** years * (sale ? 0.82 : 1);
+      const gross = units * PRICE[category] * 1.04 ** years * (0.7 + 0.6 * rng.next());
+      // Sale days carry a 12 to 24% discount; on other days about 3 in 10
+      // orders use a 5 to 10% coupon. `amount` is what the customer paid.
+      const rate = sale ? 0.12 + 0.12 * rng.next() : rng.next() < 0.3 ? 0.05 + 0.05 * rng.next() : 0;
+      const discount = Math.round(gross * rate);
+      const cod = payment === 'COD';
       // Orders in the last few days are still in flight; older ones have a
       // small backlog of stuck pending or shipped orders, as real data does.
+      // Cash on delivery orders are cancelled and returned more often.
       const status = left <= 3 ? pickWeighted(rng, ['Pending', 'Shipped', 'Delivered', 'Cancelled'], [0.35, 0.4, 0.2, 0.05])
         : left <= 8 ? pickWeighted(rng, ['Shipped', 'Delivered', 'Pending', 'Cancelled'], [0.35, 0.55, 0.04, 0.06])
-          : pickWeighted(rng, ['Delivered', 'Cancelled', 'Returned', 'Shipped', 'Pending'], [0.79, 0.08 + (sale ? 0.03 : 0), category === 'Apparel' ? 0.13 : 0.07, 0.02, 0.015]);
+          : pickWeighted(rng, ['Delivered', 'Cancelled', 'Returned', 'Shipped', 'Pending'], [0.79, 0.07 + (sale ? 0.03 : 0) + (cod ? 0.05 : 0), (category === 'Apparel' ? 0.13 : 0.07) + (cod ? 0.04 : 0), 0.02, 0.015]);
+      const fc = rng.int(1, 8);
+      const done = status === 'Delivered' || status === 'Returned';
+      const deliveryDays = done ? Math.max(1, Math.round(REGION_DAYS[region] + FC_DAYS[fc] + (sale ? 0.9 : 0) - 0.15 * years + 2.2 * (rng.next() - 0.4))) : null;
       orders.push({
         date: iso,
-        amount: Math.round(units * price * (0.7 + 0.6 * rng.next())),
+        amount: Math.round(gross) - discount,
         units,
         status,
         region,
         category,
-        fulfillment_center: `FC-${rng.int(1, 8)}`,
+        fulfillment_center: `FC-${fc}`,
+        channel,
+        payment_method: payment,
+        discount,
+        delivery_days: deliveryDays,
       });
     }
   }
-  return assignCustomers(orders.map((o, i) => ({ id: `ORD-${100001 + i}`, ...o })));
+  return assignCustomers(orders);
 };
 
-// Gives each order a customer, walking forward in time. A new customer is
-// acquired some of the time; otherwise a returning customer is picked from a
-// random handful, weighted by loyalty × recency decay, so some customers come
-// back often and others churn. Sampling a handful keeps it fast for
-// thousands of customers.
+// Gives each order an id and a customer, walking forward in time. A new
+// customer is acquired some of the time; otherwise a returning customer is
+// picked from a random handful, weighted by loyalty × recency decay, so some
+// customers come back often and others churn. Sampling a handful keeps it
+// linear for tens of thousands of customers.
 const assignCustomers = (orders) => {
   const rng = makeRng(4242);
   const customers = []; // { id, loyalty, last }
-  return orders.map((o) => {
-    const day = parseDate(o.date).getTime() / 86400000;
+  const pool = new Array(40);
+  const weights = new Array(40);
+  let lastIso = null;
+  let day = 0;
+  return orders.map((o, i) => {
+    if (o.date !== lastIso) { lastIso = o.date; day = parseDate(o.date).getTime() / 86400000; }
     let c;
     if (customers.length < 20 || rng.next() < 0.3) {
       c = { id: `CUST-${10001 + customers.length}`, loyalty: 0.15 + 2.6 * rng.next() ** 2, last: day };
       customers.push(c);
     } else {
-      const pool = Array.from({ length: 40 }, () => customers[Math.floor(rng.next() * customers.length)]);
-      const weights = pool.map(x => x.loyalty * Math.exp(-(day - x.last) / 90));
+      for (let k = 0; k < 40; k++) {
+        const x = customers[Math.floor(rng.next() * customers.length)];
+        pool[k] = x;
+        weights[k] = x.loyalty * Math.exp(-(day - x.last) / 90);
+      }
       c = pickWeighted(rng, pool, weights);
       c.last = day;
     }
-    return { ...o, customer_id: c.id };
+    const { channel, payment_method, discount, delivery_days, ...base } = o;
+    return { id: `ORD-${100001 + i}`, ...base, customer_id: c.id, channel, payment_method, discount, delivery_days };
   });
+};
+
+// The demo is the same every time, so it is built once per page load.
+let demoCache = null;
+export const demoOrders = () => {
+  if (!demoCache) demoCache = seedOrders();
+  return demoCache;
 };
 
 export const seedInventory = () => {

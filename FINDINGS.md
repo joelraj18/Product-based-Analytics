@@ -126,6 +126,6 @@ The CSVs re-import directly into the app:
 - `volume_history_daily.csv` → Demand Forecast → *Import history CSV*
 - `actuals_weekly.csv` → Planning KPIs → *Import actuals*
 - `op_targets.csv` → Budget & OP → *Import OP targets*
-- `orders.csv` → Data Grid → *Import (replace)*
+- `orders_sample.csv` (or `orders.csv.gz` unzipped, all 100,000 rows) → Data Grid → *Import (replace)*
 
 The demo data is anchored to the current week, so a later export shifts dates but keeps the same shape.

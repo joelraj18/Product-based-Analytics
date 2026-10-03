@@ -4,6 +4,7 @@ import {
   XErr, err, NA, VALUE, DIV0, NUM, isErr, isArr, isBlank, toNum, toStr, toBool, compareValues,
   toGrid, dims, flat, single, broadcast, mapValue, ISO, isoToSerial, dateToSerial, serialToDate, serialToIso, formatNumber,
 } from './values';
+import { minOf, maxOf } from '../stats';
 
 const F = {};
 const throwIf = (v) => { if (isErr(v)) throw v; return v; };
@@ -39,8 +40,8 @@ const numbers = (args, env) => {
 // ───── Math and statistics ─────
 F.SUM = (a, e) => numbers(a, e).reduce((s, x) => s + x, 0);
 F.AVERAGE = (a, e) => { const n = numbers(a, e); return n.length ? n.reduce((s, x) => s + x, 0) / n.length : DIV0(); };
-F.MIN = (a, e) => { const n = numbers(a, e); return n.length ? Math.min(...n) : 0; };
-F.MAX = (a, e) => { const n = numbers(a, e); return n.length ? Math.max(...n) : 0; };
+F.MIN = (a, e) => { const n = numbers(a, e); return n.length ? minOf(n) : 0; };
+F.MAX = (a, e) => { const n = numbers(a, e); return n.length ? maxOf(n) : 0; };
 F.COUNT = (a) => a.reduce((s, t) => s + flat(t()).filter(x => typeof x === 'number' || (typeof x === 'string' && ISO.test(x))).length, 0);
 F.COUNTA = (a) => a.reduce((s, t) => s + flat(t()).filter(x => !isBlank(x)).length, 0);
 F.COUNTBLANK = (a) => flat(a[0]()).filter(isBlank).length;
@@ -141,23 +142,34 @@ export const matcher = (criterion) => {
   if (numeric) target = asNum;
   if (op === '=' && raw === '') return v => isBlank(v);
   if (op === '<>' && raw === '') return v => !isBlank(v);
+  // Built once per criterion, not once per cell: a SUMIFS over 100,000
+  // rows would otherwise compile 100,000 regular expressions.
+  const re = !numeric && (op === '=' || op === '<>') ? wildcard(raw) : null;
   return (v) => {
     if (isErr(v)) return false;
     if (numeric) {
       const x = typeof v === 'number' ? v : typeof v === 'string' && ISO.test(v) ? isoToSerial(v) : null;
       if (x === null) return op === '<>';
-      const c = x - target;
-      return { '=': c === 0, '<>': c !== 0, '<': c < 0, '>': c > 0, '<=': c <= 0, '>=': c >= 0 }[op];
+      return test(op, x - target);
     }
-    if (op === '=' || op === '<>') {
-      const hit = typeof v === 'string' && wildcard(raw).test(v);
+    if (re) {
+      const hit = typeof v === 'string' && re.test(v);
       return op === '=' ? hit : !hit;
     }
     if (typeof v !== 'string') return false;
-    const c = compareValues(v, raw);
-    return { '<': c < 0, '>': c > 0, '<=': c <= 0, '>=': c >= 0 }[op];
+    return test(op, compareValues(v, raw));
   };
 };
+function test(op, c) {
+  switch (op) {
+    case '=': return c === 0;
+    case '<>': return c !== 0;
+    case '<': return c < 0;
+    case '>': return c > 0;
+    case '<=': return c <= 0;
+    default: return c >= 0;
+  }
+}
 // Indices of cells that satisfy every (range, criterion) pair.
 const matching = (pairs) => {
   const grids = pairs.map(([r]) => flat(r));
@@ -165,7 +177,11 @@ const matching = (pairs) => {
   if (grids.some(g => g.length !== n)) throw VALUE();
   const tests = pairs.map(([, c]) => matcher(c));
   const out = [];
-  for (let i = 0; i < n; i++) if (tests.every((t, k) => t(grids[k][i]))) out.push(i);
+  for (let i = 0; i < n; i++) {
+    let ok = true;
+    for (let k = 0; ok && k < tests.length; k++) ok = tests[k](grids[k][i]);
+    if (ok) out.push(i);
+  }
   return out;
 };
 const pairsFrom = (a, start) => {
@@ -189,8 +205,8 @@ F.SUMIF = (a) => { const range = a[0](); const vals = flat(a[2] ? a[2]() : range
 F.SUMIFS = (a) => { const vals = flat(a[0]()); return overCriteria(pairsFrom(a, 1), idx => sumOf(pick(vals, idx))); };
 F.AVERAGEIF = (a) => { const range = a[0](); const vals = flat(a[2] ? a[2]() : range); return overCriteria([[range, a[1]()]], idx => avgOf(pick(vals, idx))); };
 F.AVERAGEIFS = (a) => { const vals = flat(a[0]()); return overCriteria(pairsFrom(a, 1), idx => avgOf(pick(vals, idx))); };
-F.MAXIFS = (a) => { const vals = flat(a[0]()); return overCriteria(pairsFrom(a, 1), idx => { const n = pick(vals, idx); return n.length ? Math.max(...n) : 0; }); };
-F.MINIFS = (a) => { const vals = flat(a[0]()); return overCriteria(pairsFrom(a, 1), idx => { const n = pick(vals, idx); return n.length ? Math.min(...n) : 0; }); };
+F.MAXIFS = (a) => { const vals = flat(a[0]()); return overCriteria(pairsFrom(a, 1), idx => { const n = pick(vals, idx); return n.length ? maxOf(n) : 0; }); };
+F.MINIFS = (a) => { const vals = flat(a[0]()); return overCriteria(pairsFrom(a, 1), idx => { const n = pick(vals, idx); return n.length ? minOf(n) : 0; }); };
 
 // ───── Logic ─────
 F.IF = (a) => {

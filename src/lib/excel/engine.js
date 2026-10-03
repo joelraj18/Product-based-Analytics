@@ -33,11 +33,24 @@ const join = (x, y) => {
   return a + b;
 };
 
+// Raw cell contents stored column by column (cols[c][r]), so reading a
+// 100,000 row column is an array walk rather than 100,000 string key lookups.
+class CellStore {
+  constructor() { this.cols = []; }
+  get(r, c) { const col = this.cols[c]; return col ? col[r] : undefined; }
+  has(r, c) { return this.get(r, c) !== undefined; }
+  set(r, c, v) { (this.cols[c] || (this.cols[c] = []))[r] = v; }
+  delete(r, c) { const col = this.cols[c]; if (col && r < col.length) col[r] = undefined; }
+}
+
+const isFormula = (v) => typeof v === 'string' && v.charCodeAt(0) === 61; // "="
+const isQuoted = (v) => typeof v === 'string' && v.charCodeAt(0) === 39; // "'"
+
 // A sheet: raw cell contents plus a memoised evaluator.
 // Cells holding text that starts with "=" are formulas.
 export class Sheet {
   constructor() {
-    this.raw = new Map(); // "r,c" → string | number | boolean
+    this.raw = new CellStore(); // string | number | boolean per cell
     this.formulas = new Set(); // keys of cells holding formulas
     this.maxRow = 0;
     this.maxCol = 0;
@@ -47,6 +60,7 @@ export class Sheet {
   reset() {
     this.cache = new Map();
     this.spill = new Map(); // "r,c" → origin key
+    this.spillMaxRow = 0;
     this.visiting = new Set();
     this.parsed = new Map();
     this.spillsReady = false;
@@ -57,11 +71,15 @@ export class Sheet {
     const s = new Sheet();
     // Data cells are written straight into the map (no per cell cache reset),
     // so loading thousands of rows stays fast.
-    columns.forEach((c, j) => { if (!isBlank(c)) s.raw.set(`0,${j}`, c); });
-    rows.forEach((r, i) => columns.forEach((c, j) => {
-      const v = r[c];
-      if (!isBlank(v)) s.raw.set(`${i + 1},${j}`, typeof v === 'string' && v.startsWith('=') ? `'${v}` : v);
-    }));
+    columns.forEach((c, j) => {
+      const col = new Array(rows.length + 1);
+      if (!isBlank(c)) col[0] = c;
+      for (let i = 0; i < rows.length; i++) {
+        const v = rows[i][c];
+        if (!isBlank(v)) col[i + 1] = isFormula(v) ? `'${v}` : v;
+      }
+      s.raw.cols[j] = col;
+    });
     s.maxRow = rows.length;
     s.maxCol = Math.max(0, columns.length - 1);
     s.reset();
@@ -70,13 +88,13 @@ export class Sheet {
 
   setRaw(row, col, value) {
     const key = `${row},${col}`;
-    if (isBlank(value)) this.raw.delete(key); else this.raw.set(key, value);
-    if (typeof value === 'string' && value.startsWith('=')) this.formulas.add(key); else this.formulas.delete(key);
+    if (isBlank(value)) this.raw.delete(row, col); else this.raw.set(row, col, value);
+    if (isFormula(value)) this.formulas.add(key); else this.formulas.delete(key);
     if (!isBlank(value)) { this.maxRow = Math.max(this.maxRow, row); this.maxCol = Math.max(this.maxCol, col); }
     this.reset();
   }
 
-  getRaw(row, col) { return this.raw.get(`${row},${col}`); }
+  getRaw(row, col) { return this.raw.get(row, col); }
 
   formulaCells() {
     return [...this.formulas].map(k => k.split(',').map(Number));
@@ -91,22 +109,17 @@ export class Sheet {
 
   // Result of the formula in a cell (array for spilling formulas).
   result(row, col) {
+    const raw = this.raw.get(row, col);
+    // Plain values need no cache.
+    if (!isFormula(raw)) return isQuoted(raw) ? raw.slice(1) : raw === undefined ? null : raw;
     const key = `${row},${col}`;
     if (this.cache.has(key)) return this.cache.get(key);
     if (this.visiting.has(key)) return err('#CIRC!');
-    const raw = this.raw.get(key);
-    let out;
-    if (typeof raw === 'string' && raw.startsWith('=')) {
-      this.visiting.add(key);
-      const node = this.ast(key, raw);
-      out = node.t === 'parseError' ? err('#NAME?') : this.evaluate(node, { row, col, names: {} });
-      this.visiting.delete(key);
-      if (isArr(out)) out = this.place(row, col, out);
-    } else if (typeof raw === 'string' && raw.startsWith("'")) {
-      out = raw.slice(1);
-    } else {
-      out = raw === undefined ? null : raw;
-    }
+    this.visiting.add(key);
+    const node = this.ast(key, raw);
+    let out = node.t === 'parseError' ? err('#NAME?') : this.evaluate(node, { row, col, names: {} });
+    this.visiting.delete(key);
+    if (isArr(out)) out = this.place(row, col, out);
     this.cache.set(key, out);
     return out;
   }
@@ -122,18 +135,20 @@ export class Sheet {
       for (let c = 0; c < w; c++) {
         if (r === 0 && c === 0) continue;
         const k = `${row + r},${col + c}`;
-        if (this.raw.has(k) || (this.spill.has(k) && this.spill.get(k) !== origin)) return err('#SPILL!');
+        if (this.raw.has(row + r, col + c) || (this.spill.has(k) && this.spill.get(k) !== origin)) return err('#SPILL!');
       }
     }
     for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) if (r || c) this.spill.set(`${row + r},${col + c}`, origin);
+    this.spillMaxRow = Math.max(this.spillMaxRow, row + h - 1);
     return arr;
   }
 
   // Displayed value of any cell, including cells filled by a spill.
   value(row, col) {
-    const key = `${row},${col}`;
-    if (this.raw.has(key)) return single(this.result(row, col));
+    if (this.raw.has(row, col)) return single(this.result(row, col));
     this.resolveSpills(row, col);
+    if (!this.spill.size) return null;
+    const key = `${row},${col}`;
     const origin = this.spill.get(key);
     if (!origin) return null;
     const [r0, c0] = origin.split(',').map(Number);
@@ -159,25 +174,29 @@ export class Sheet {
   isSpillCell(row, col) { return this.spill.has(`${row},${col}`); }
 
   spillOrigin(row, col) {
-    const res = this.raw.has(`${row},${col}`) ? this.result(row, col) : null;
+    const res = this.raw.has(row, col) ? this.result(row, col) : null;
     return isArr(res) ? dims(res) : null;
   }
 
   rangeValues(r1, c1, r2, c2) {
     const last = r2 === null ? this.usedRows() - 1 : r2;
-    const out = [];
-    for (let r = r1; r <= last; r++) {
-      const row = [];
-      for (let c = c1; c <= c2; c++) row.push(this.value(r, c));
-      out.push(row);
+    if (last < r1) return [[null]];
+    const out = new Array(last - r1 + 1);
+    for (let r = r1; r <= last; r++) out[r - r1] = new Array(c2 - c1 + 1);
+    // Plain values are read straight from the column; formulas, quoted
+    // text and blanks (which a spill may cover) go through value().
+    for (let c = c1; c <= c2; c++) {
+      const col = this.raw.cols[c] || [];
+      for (let r = r1; r <= last; r++) {
+        const v = col[r];
+        out[r - r1][c - c1] = v === undefined || typeof v === 'string' ? this.value(r, c) : v;
+      }
     }
-    return out.length ? out : [[null]];
+    return out;
   }
 
   usedRows() {
-    let max = this.maxRow;
-    this.spill.forEach((_, k) => { max = Math.max(max, Number(k.split(',')[0])); });
-    return max + 1;
+    return Math.max(this.maxRow, this.spillMaxRow) + 1;
   }
 
   evaluate(node, ctx) {

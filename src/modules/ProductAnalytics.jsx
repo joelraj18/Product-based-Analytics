@@ -7,7 +7,6 @@ import { Card, Button, Tabs, Badge, Select, NumberInput, Field, DataTable, Empty
 import { InfoTip, Prose } from '../components/help';
 import { useWorkspace } from '../state/workspace';
 import usePersistentState from '../hooks/usePersistentState';
-import { seedOrders } from '../data/seed';
 import { columnsOf, downloadCSV } from '../lib/csv';
 import { monthLabel } from '../lib/dates';
 import { formatCurrency, formatCompact, formatNumber } from '../lib/format';
@@ -131,13 +130,16 @@ const MetricTree = ({ orders, currency }) => {
 const FunnelView = ({ orders, currency }) => {
   const [maturity, setMaturity] = usePersistentState('pa_funnel_maturity', 14);
   const [segment, setSegment] = usePersistentState('pa_funnel_segment', 'region');
-  const steps = buildFunnel(orders, { maturityDays: maturity });
-  const fields = columnsOf(orders.slice(0, 50).map(o => o.raw)).filter(c => {
-    const n = new Set(orders.map(o => o.raw[c])).size;
-    return n > 1 && n <= 12;
-  });
+  const steps = useMemo(() => buildFunnel(orders, { maturityDays: maturity }), [orders, maturity]);
+  // Segment fields are columns with 2 to 12 distinct values; the scan stops
+  // as soon as a column passes 12.
+  const fields = useMemo(() => columnsOf(orders.slice(0, 50).map(o => o.raw)).filter(c => {
+    const seen = new Set();
+    for (let i = 0; i < orders.length && seen.size <= 12; i++) seen.add(orders[i].raw[c]);
+    return seen.size > 1 && seen.size <= 12;
+  }), [orders]);
   const seg = fields.includes(segment) ? segment : fields[0];
-  const bySeg = seg ? funnelBySegment(orders, o => String(o.raw[seg] ?? ''), { maturityDays: maturity }) : [];
+  const bySeg = useMemo(() => (seg ? funnelBySegment(orders, o => String(o.raw[seg] ?? ''), { maturityDays: maturity }) : []), [orders, seg, maturity]);
   if (!steps[0].count) {
     return (
       <div className="space-y-4">
@@ -567,10 +569,10 @@ const AnomalyView = ({ orders, currency, volumeHistory, lines }) => {
     ...lineIds.map(id => ({ value: `line:${id}`, label: `Daily contacts · ${(lines.find(l => l.id === id) || {}).name || id}` })),
   ];
   const isLine = metric.startsWith('line:');
-  const series = metric === 'orders'
+  const series = useMemo(() => (metric === 'orders'
     ? weeklyTotals(orders, () => 1)
     : isLine ? dailyTotals(volumeHistory, 'date', 'volume', r => r.line_id === metric.slice(5)).slice(-180)
-      : weeklyTotals(orders, o => (o.bucket === 'cancelled' || o.bucket === 'returned' ? 0 : o.amount));
+      : weeklyTotals(orders, o => (o.bucket === 'cancelled' || o.bucket === 'returned' ? 0 : o.amount))), [orders, volumeHistory, metric, isLine]);
   const points = detectAnomalies(series, { window: isLine ? Math.max(windowN, 14) : windowN, threshold });
   const alerts = points.filter(p => p.flag).reverse();
   const fmt = metric === 'revenue' ? (v) => formatCompact(v, currency) : (v) => formatCompact(v);
@@ -607,7 +609,7 @@ const AnomalyView = ({ orders, currency, volumeHistory, lines }) => {
 // ───────────── Screen ─────────────
 const ProductAnalytics = () => {
   const ws = useWorkspace();
-  const { orders: rawOrders, setOrders, dashboardConfig, currency, volumeHistory, lines } = ws;
+  const { orders: rawOrders, resetOrders, dashboardConfig, currency, volumeHistory, lines } = ws;
   const [tab, setTab] = usePersistentState('pa_tab', 'tree');
   const [customerCol, setCustomerCol] = usePersistentState('pa_customer_col', 'customer_id');
   const columns = useMemo(() => columnsOf(rawOrders.slice(0, 200)), [rawOrders]);
@@ -650,7 +652,7 @@ const ProductAnalytics = () => {
           <p className="text-sm text-slate-500 max-w-lg mx-auto">Pick the column that identifies the buyer above, or load the demo orders, which now include <code className="bg-beige-100 px-1 rounded">customer_id</code></p>
           <Button onClick={() => {
             // Replacing is destructive for uploaded orders, so ask first.
-            if (window.confirm('Replace the current orders table with the demo orders?\nDownload a backup in Settings first if you need your data')) setOrders(seedOrders());
+            if (window.confirm('Replace the current orders table with the demo orders?\nDownload a backup in Settings first if you need your data')) resetOrders();
           }}
           ><RotateCcw size={14} /> Replace with demo orders</Button>
         </Card>

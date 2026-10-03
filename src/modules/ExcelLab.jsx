@@ -58,7 +58,7 @@ const DatasetPicker = ({ value, onChange, tables, only }) => (
     value={value}
     onChange={onChange}
     className="w-auto"
-    options={Object.keys(tables).filter(n => !only || only.includes(n)).map(n => ({ value: n, label: `${n} (${tables[n].length} rows)` }))}
+    options={Object.keys(tables).filter(n => !only || only.includes(n)).map(n => ({ value: n, label: `${n} (${tables[n].length.toLocaleString('en-IN')} rows)` }))}
   />
 );
 
@@ -90,7 +90,7 @@ const FunctionHelp = ({ onInsert }) => {
 const PivotBuilder = ({ rows, config, setConfig, compact }) => {
   const fields = columnsOf(rows.slice(0, 200));
   const opts = (blank) => [...(blank ? [{ value: '', label: blank }] : []), ...fields.map(f => ({ value: f, label: f }))];
-  const filterValues = config.filterField ? [...new Set(rows.map(r => String(r[config.filterField] ?? '')))].sort() : [];
+  const filterValues = useMemo(() => (config.filterField ? [...new Set(rows.map(r => String(r[config.filterField] ?? '')))].sort() : []), [rows, config.filterField]);
   const valid = config.rows && config.value;
   const pivot = useMemo(() => (valid ? buildPivot(rows, config) : null), [rows, config, valid]);
   const table = pivot ? pivotRows(pivot, config) : [];
@@ -222,7 +222,7 @@ const Practice = ({ tables }) => {
   const [group, setGroup] = useState(ex.group);
   const rows = tables[ex.dataset] || [];
   const last = rows.length + 1;
-  const { sheet, version, edit, reset } = useEditableSheet('excel_practice_edits', ex.dataset, rows);
+  const { sheet, version, edit, reset } = useEditableSheet('excel_practice_edits_v3', ex.dataset, rows);
   const solvedSet = new Set((Array.isArray(solved) ? solved : []).filter(id => EXCEL_PRACTICE.some(e => e.id === id)));
   const inGroup = EXCEL_PRACTICE.filter(e => e.group === group);
   const target = ex.cell ? parseRef(ex.cell) : null;
@@ -325,7 +325,7 @@ const ExcelLab = () => {
   const tables = useMemo(() => ({ ...builtins, ...Object.fromEntries(Object.entries(userTables).map(([n, t]) => [n, t.rows || []])) }), [builtins, userTables]);
   const ds = tables[dataset] ? dataset : 'orders';
   const rows = tables[ds];
-  const { sheet, version, edit, reset, editCount } = useEditableSheet('excel_sheet_edits', ds, rows);
+  const { sheet, version, edit, reset, editCount } = useEditableSheet('excel_sheet_edits_v3', ds, rows);
   const pds = tables[pivotDataset] ? pivotDataset : 'orders';
   const [draft, setDraft] = useState(null);
   const [target, setTarget] = useState(null);

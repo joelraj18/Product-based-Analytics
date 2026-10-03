@@ -197,6 +197,10 @@ export const SCHEMAS = [
       col('category', 'text', 'Product category', 'Electronics'),
       col('units', 'number', 'Units in the order', 2),
       col('customer_id', 'text', 'Who placed the order, needed for cohorts, retention, RFM and CLV', 'CUST-1001'),
+      col('channel', 'text', 'Where the order was placed, such as App, Web or Marketplace', 'App'),
+      col('payment_method', 'text', 'How the order was paid, such as UPI, Card, Wallet or COD', 'UPI'),
+      col('discount', 'number', 'Discount given on the order, already taken off the amount', 120),
+      col('delivery_days', 'number', 'Days from order to delivery, blank until delivered', 3),
     ],
     keepExtra: true,
     modes: [
