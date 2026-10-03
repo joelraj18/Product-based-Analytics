@@ -44,7 +44,21 @@ export const sanitizeTableName = (name) => {
   return n.slice(0, 48);
 };
 
+// Columns in table order with a type and one example value each.
 export const describeTable = (rows) => {
   const cols = columnsOf(rows.slice(0, 200));
-  return cols.map(c => ({ name: c, type: inferType(rows, c) }));
+  return cols.map(c => {
+    const sample = rows.find(r => r[c] !== '' && r[c] !== null && r[c] !== undefined);
+    return { name: c, type: inferType(rows, c), example: sample ? sample[c] : '' };
+  });
+};
+
+// Columns that take part in a join, per table, for highlighting.
+export const joinColumns = () => {
+  const out = {};
+  RELATIONSHIPS.forEach(([a, b]) => [a, b].forEach(ref => {
+    const [t, c] = ref.split('.');
+    (out[t] = out[t] || new Set()).add(c);
+  }));
+  return out;
 };

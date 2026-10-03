@@ -1,14 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { Database, Table, Play, Download, History, Trash2, Lightbulb, CheckCircle2, Eye, Upload, Link2 } from 'lucide-react';
+import { Database, Play, Download, History, Trash2, Lightbulb, CheckCircle2, Eye, Upload, Link2 } from 'lucide-react';
 import { Card, Button, DataTable, EmptyState, Tabs, Badge, useToast } from '../components/ui';
 import { useWorkspace } from '../state/workspace';
 import { Prose } from '../components/help';
 import usePersistentState from '../hooks/usePersistentState';
 import { columnsOf, downloadCSV } from '../lib/csv';
-import { builtinTables, RELATIONSHIPS, describeTable } from '../lib/sqlTables';
+import { builtinTables, RELATIONSHIPS } from '../lib/sqlTables';
+import TablePreview from '../components/TablePreview';
+import SchemaDiagram, { SchemaReferenceButton } from '../components/SchemaDiagram';
 import { runSql, sameResult } from '../lib/sqlRunner';
-import { PRACTICE } from '../content/sqlPractice';
-import { formatNumber } from '../lib/format';
+import { PRACTICE, LEVELS } from '../content/sqlPractice';
 
 const EXAMPLES = [
   { label: 'Revenue by region', sql: 'SELECT region, COUNT(*) AS orders, SUM(amount) AS revenue\nFROM orders\nGROUP BY region\nORDER BY revenue DESC' },
@@ -51,11 +52,11 @@ const Results = ({ results, message }) => {
   );
 };
 
-const Editor = ({ query, setQuery, onRun, children }) => (
+const Editor = ({ query, setQuery, onRun, children, tables, uploaded }) => (
   <Card className="flex flex-col h-56 lg:h-64 overflow-hidden">
     <div className="p-2 bg-slate-50 border-b flex flex-wrap justify-between items-center gap-2">
       <span className="text-xs font-bold text-slate-500 uppercase px-1">SQL editor <span className="normal-case font-normal text-slate-400">· Ctrl/⌘ + Enter to run</span></span>
-      <div className="flex gap-2">{children}<Button size="sm" onClick={onRun}><Play size={14} /> Run query</Button></div>
+      <div className="flex flex-wrap gap-2">{tables && <SchemaReferenceButton tables={tables} uploaded={uploaded} />}{children}<Button size="sm" onClick={onRun}><Play size={14} /> Run query</Button></div>
     </div>
     <textarea
       aria-label="SQL query"
@@ -89,6 +90,10 @@ const SqlLab = ({ onNavigate }) => {
   const tables = useMemo(() => ({ ...builtins, ...uploaded }), [builtins, uploaded]);
   const history = Array.isArray(ws.sqlHistory) ? ws.sqlHistory : [];
   const exercise = PRACTICE.find(p => p.id === exerciseId) || PRACTICE[0];
+  const solvedSet = new Set((Array.isArray(solved) ? solved : []).filter(id => PRACTICE.some(p => p.id === id)));
+  const levelOf = (id) => (PRACTICE.find(p => p.id === id) || PRACTICE[0]).level;
+  const [level, setLevel] = useState(() => levelOf(exerciseId));
+  const inLevel = PRACTICE.filter(p => p.level === level);
 
   const execute = (sql) => {
     const started = performance.now();
@@ -120,7 +125,7 @@ const SqlLab = ({ onNavigate }) => {
       const expected = execute(exercise.solution).rows;
       if (sameResult(rows, expected, exercise.ordered)) {
         setMessage({ ok: true, text: `✓ Correct! ${rows.length} rows match the expected answer` });
-        if (!solved.includes(exercise.id)) setSolved([...solved, exercise.id]);
+        if (!solvedSet.has(exercise.id)) setSolved([...solvedSet, exercise.id]);
       } else {
         const why = rows.length !== expected.length
           ? `expected ${expected.length} row(s), got ${rows.length}`
@@ -136,12 +141,22 @@ const SqlLab = ({ onNavigate }) => {
   };
 
   const pickExercise = (id) => {
-    setExerciseId(id); setShowHint(false); setShowSolution(false); setResults(null); setMessage(null); setPracticeQuery('');
+    setExerciseId(id); setLevel(levelOf(id)); setShowHint(false); setShowSolution(false); setResults(null); setMessage(null); setPracticeQuery('');
+  };
+  const nextUnsolved = () => {
+    const start = PRACTICE.findIndex(p => p.id === exercise.id);
+    const next = [...PRACTICE.slice(start + 1), ...PRACTICE.slice(0, start + 1)].find(p => !solvedSet.has(p.id));
+    if (next) pickExercise(next.id);
   };
 
   const insert = (text) => {
     const add = (q) => `${q}${q && !/\s$/.test(q) ? ' ' : ''}${text}`;
     if (tab === 'practice') setPracticeQuery(add); else setQuery(add);
+  };
+
+  const pickTable = (name) => {
+    const q = `SELECT * FROM ${name} LIMIT 100`;
+    if (tab === 'practice') setPracticeQuery(q); else { setTab('query'); setQuery(q); }
   };
 
   const TableList = (
@@ -152,22 +167,17 @@ const SqlLab = ({ onNavigate }) => {
           {Object.keys(list).length === 0 && (
             <button type="button" onClick={() => onNavigate && onNavigate('upload')} className="text-xs text-blue-700 hover:underline flex items-center gap-1"><Upload size={12} /> Upload a CSV/Excel file</button>
           )}
-          {Object.entries(list).map(([name, rows]) => (
-            <details key={name} className="group">
-              <summary className="text-xs font-bold text-blue-800 cursor-pointer flex items-center gap-1 list-none">
-                <Table size={12} />
-                <button type="button" className="hover:underline" onClick={(e) => { e.preventDefault(); const q = `SELECT * FROM ${name} LIMIT 100`; if (tab === 'practice') setPracticeQuery(q); else { setTab('query'); setQuery(q); } }}><code className="font-mono">{name}</code></button>
-                <span className="text-slate-400 font-normal">({rows.length})</span>
-              </summary>
-              <div className="pl-3 mt-1 border-l-2 border-slate-100 space-y-0.5">
-                {describeTable(rows).map(col => (
-                  <button type="button" key={col.name} onClick={() => insert(col.name)} className="w-full text-xs text-slate-600 hover:text-blue-700 hover:bg-slate-50 px-1 rounded flex justify-between">
-                    <code className="font-mono">{col.name}</code><span className="text-[10px] text-slate-400">{col.type}</span>
-                  </button>
-                ))}
-              </div>
-            </details>
-          ))}
+          <div className="space-y-2">
+            {Object.entries(list).map(([name, rows]) => (
+              <TablePreview
+                key={name}
+                name={name}
+                rows={rows}
+                onPickTable={pickTable}
+                onInsertColumn={insert}
+              />
+            ))}
+          </div>
         </div>
       ))}
       {tab === 'query' && (
@@ -202,7 +212,7 @@ const SqlLab = ({ onNavigate }) => {
         <Tabs
           value={tab}
           onChange={(t) => { setTab(t); setResults(null); setMessage(null); }}
-          tabs={[{ value: 'query', label: 'Query' }, { value: 'practice', label: `Practice (${solved.length}/${PRACTICE.length})` }, { value: 'schema', label: 'Schema' }]}
+          tabs={[{ value: 'query', label: 'Query' }, { value: 'practice', label: `Practice (${solvedSet.size}/${PRACTICE.length})` }, { value: 'schema', label: 'Schema' }]}
         />
         <span className="text-xs text-slate-500">{Object.keys(tables).length} tables · queries run on a copy, so your data is never changed</span>
       </div>
@@ -210,9 +220,10 @@ const SqlLab = ({ onNavigate }) => {
       {tab === 'schema' ? (
         <div className="space-y-4">
           <Card className="p-5">
-            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><Link2 size={16} /> How the tables connect</h3>
-            <p className="text-sm text-slate-500 mb-3">Join tables on these columns, for example <code className="bg-slate-100 px-1 rounded">FROM capacity_plan c JOIN plan_lines l ON c.line_id = l.id</code></p>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <h3 className="font-bold text-slate-800 mb-1 flex items-center gap-2"><Link2 size={16} /> How the tables connect</h3>
+            <p className="text-sm text-slate-500 mb-3">🔑 marks join columns, and each line joins two tables, for example <code className="bg-slate-100 px-1 rounded">FROM capacity_plan c JOIN plan_lines l ON c.line_id = l.id</code></p>
+            <SchemaDiagram tables={tables} uploaded={uploaded} maxHeight="70vh" />
+            <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 text-sm mt-4">
               {RELATIONSHIPS.map(([a, b, why]) => (
                 <li key={a + b} className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-slate-50 border">
                   <code className="text-blue-800">{a}</code><span className="text-slate-400">→</span><code className="text-blue-800">{b}</code>
@@ -221,53 +232,64 @@ const SqlLab = ({ onNavigate }) => {
               ))}
             </ul>
           </Card>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
             {Object.entries(tables).map(([name, rows]) => (
-              <Card key={name} className="overflow-hidden">
-                <div className="px-4 py-2 border-b bg-slate-50 flex justify-between items-center">
-                  <code className="font-bold text-slate-800">{name}</code>
-                  <span className="flex items-center gap-2">
-                    {uploaded[name] && <Badge type="purple">uploaded</Badge>}
-                    <span className="text-xs text-slate-500">{formatNumber(rows.length)} rows</span>
-                  </span>
-                </div>
-                <table className="w-full text-xs">
-                  <tbody className="divide-y divide-slate-100">
-                    {describeTable(rows).map(c => (
-                      <tr key={c.name}><td className="px-4 py-1 font-mono text-slate-700">{c.name}</td><td className="px-4 py-1 text-right text-slate-400">{c.type}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="px-4 py-2 border-t">
-                  <Button size="sm" variant="secondary" onClick={() => { setTab('query'); setQuery(`SELECT * FROM ${name} LIMIT 100`); }}><Eye size={12} /> Preview</Button>
-                </div>
-              </Card>
+              <TablePreview
+                key={name}
+                name={name}
+                rows={rows}
+                badge={uploaded[name] ? <Badge type="purple">uploaded</Badge> : null}
+                onPickTable={(n) => { setTab('query'); setQuery(`SELECT * FROM ${n} LIMIT 100`); }}
+                onInsertColumn={(c) => { setTab('query'); setQuery(q => `${q}${q && !/\s$/.test(q) ? ' ' : ''}${c}`); }}
+              />
             ))}
           </div>
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-170px)]">
-          <Card className="lg:w-72 flex flex-col overflow-hidden shrink-0 max-h-80 lg:max-h-none">
-            <div className="p-3 bg-slate-100 border-b font-bold text-slate-700 flex items-center gap-2 text-sm"><Database size={14} /> Tables</div>
+          <Card className="lg:w-96 flex flex-col overflow-hidden shrink-0 max-h-96 lg:max-h-none">
+            <div className="p-3 bg-slate-100 border-b font-bold text-slate-700 flex items-center gap-2 text-sm"><Database size={14} /> Tables <span className="font-normal text-xs text-slate-500">· click a column to insert it</span></div>
             {TableList}
           </Card>
 
           <div className="flex-1 flex flex-col gap-4 min-w-0 min-h-0">
             {tab === 'practice' && (
               <Card className="p-4">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {PRACTICE.map((p, i) => (
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div className="flex flex-wrap gap-1" role="tablist" aria-label="Practice level">
+                    {LEVELS.map(l => {
+                      const all = PRACTICE.filter(p => p.level === l.id);
+                      const done = all.filter(p => solvedSet.has(p.id)).length;
+                      return (
+                        <button
+                          type="button" key={l.id} role="tab" aria-selected={level === l.id}
+                          onClick={() => { setLevel(l.id); if (exercise.level !== l.id) pickExercise(all[0].id); }}
+                          title={l.blurb}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${level === l.id ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                        >
+                          {l.label} <span className={level === l.id ? 'text-slate-300' : 'text-slate-400'}>{done}/{all.length}</span>
+                          <span className="block h-1 mt-1 rounded bg-slate-200 overflow-hidden"><span className="block h-full bg-emerald-500" style={{ width: `${(100 * done) / all.length}%` }} /></span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={nextUnsolved} disabled={solvedSet.size === PRACTICE.length}>Next unsolved →</Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                  {inLevel.map((p, i) => (
                     <button
                       type="button" key={p.id} onClick={() => pickExercise(p.id)}
-                      title={`${p.level}: ${p.title}`}
-                      className={`w-8 h-8 rounded-lg text-xs font-bold border ${p.id === exercise.id ? 'bg-blue-600 text-white border-blue-600' : solved.includes(p.id) ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
-                    >{solved.includes(p.id) && p.id !== exercise.id ? '✓' : i + 1}</button>
+                      title={`${p.topic}: ${p.title}`}
+                      aria-label={`Exercise ${i + 1}: ${p.title}${solvedSet.has(p.id) ? ', solved' : ''}`}
+                      className={`w-8 h-8 rounded-lg text-xs font-bold border ${p.id === exercise.id ? 'bg-blue-600 text-white border-blue-600' : solvedSet.has(p.id) ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                    >{solvedSet.has(p.id) && p.id !== exercise.id ? '✓' : i + 1}</button>
                   ))}
                 </div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge type={exercise.level === 'Beginner' ? 'success' : exercise.level === 'Intermediate' ? 'warning' : 'danger'}>{exercise.level}</Badge>
+                  <Badge type={exercise.level === 'Beginner' ? 'success' : exercise.level === 'Intermediate' ? 'blue' : exercise.level === 'Advanced' ? 'warning' : 'purple'}>{(LEVELS.find(l => l.id === exercise.level) || {}).label}</Badge>
+                  <Badge>{exercise.topic}</Badge>
                   <h3 className="font-bold text-slate-800">{exercise.title}</h3>
-                  {solved.includes(exercise.id) && <CheckCircle2 size={16} className="text-emerald-600" aria-label="solved" />}
+                  {solvedSet.has(exercise.id) && <CheckCircle2 size={16} className="text-emerald-600" aria-label="solved" />}
                 </div>
                 <p className="text-sm text-slate-700"><Prose text={exercise.prompt} /></p>
                 <div className="flex flex-wrap gap-2 mt-3">
@@ -279,11 +301,11 @@ const SqlLab = ({ onNavigate }) => {
               </Card>
             )}
             {tab === 'practice' ? (
-              <Editor query={practiceQuery} setQuery={setPracticeQuery} onRun={() => runPractice(false)}>
+              <Editor query={practiceQuery} setQuery={setPracticeQuery} onRun={() => runPractice(false)} tables={tables} uploaded={uploaded}>
                 <Button size="sm" variant="success" onClick={() => runPractice(true)}><CheckCircle2 size={14} /> Check my answer</Button>
               </Editor>
             ) : (
-              <Editor query={query} setQuery={setQuery} onRun={runQuery}>
+              <Editor query={query} setQuery={setQuery} onRun={runQuery} tables={tables} uploaded={uploaded}>
                 {!query.trim() && <Button size="sm" variant="ghost" onClick={() => notify('Pick an example on the left or click a table name', 'info')}>Need an idea?</Button>}
               </Editor>
             )}
