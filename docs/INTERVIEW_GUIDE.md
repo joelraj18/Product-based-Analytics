@@ -1,0 +1,356 @@
+# WorkX: Interview Guide
+
+How to present WorkX in a data analyst interview at a product company: what changed, how each feature works, the logic behind it, and the questions you are likely to get.
+
+> The demo data is anchored to the current week, so the exact numbers below will shift a little when you open the app on a different day. The shape of the results stays the same.
+
+---
+
+## 1. The 60-second pitch
+
+> "WorkX is a browser-based analytics and planning suite for a product company. It covers two jobs.
+> **Product analytics:** what drives revenue, where orders leak, whether customers come back, who the best customers are, and whether an experiment worked.
+> **Workforce planning:** forecasting contact volume, turning it into headcount and cost, and tracking it against budget.
+> Everything runs client-side in React. The maths lives in small, pure JavaScript modules covered by about 250 unit tests. Users can upload their own CSV or Excel files and query them with SQL or Excel-style formulas. I built the statistics myself (z-test, Welch t-test, sample size, Erlang C, Holt-Winters) so I can explain every number on screen."
+
+**Three things to emphasise:**
+1. **Metric definitions are explicit.** There's a KPI dictionary, a North Star, guardrails, and a metric tree that multiplies back exactly.
+2. **Results are honest.**
+   - Partial months are never compared with full ones.
+   - In-flight orders are excluded from the funnel.
+   - Sample ratio mismatch is checked before any A/B result is shown.
+   - Anomaly baselines never include the point being tested.
+3. **Everything is tested and reproducible.** The demo data is deterministic, and every exercise and formula has a test.
+
+---
+
+## 2. Architecture (if asked "how is it built?")
+
+| Layer | What | Why |
+|---|---|---|
+| UI | React 19, Tailwind, Recharts | Fast to build; charts are declarative |
+| Logic | `src/lib/**`: pure functions, no React | Easy to unit test, reusable from UI and scripts |
+| Data | Seeded demo data, plus browser storage (localStorage for the workspace, IndexedDB for uploads) | No server needed; data never leaves the browser |
+| SQL | alasql (in-browser SQL engine) | Real SQL with JOINs, CTEs and window functions on any table |
+| Excel | Formula engine written for this project (parser, evaluator, 115 functions, dynamic arrays) | HyperFormula is GPL-licensed, so I wrote a small one |
+| Tests | Jest + Testing Library, a prose style test, and Playwright checks | About 250 tests; the build is warning-free |
+
+**Design choice to mention:** the product analytics screens read the **same orders table** as the Sales Dashboard, through a column mapping. Any uploaded orders file with a date, amount, status and customer column works without code changes.
+
+---
+
+## 3. What changed in this round
+
+### 3.1 UI: Apple-style beige theme
+- **Warm neutrals and Apple blue.** Tailwind's `slate` palette was remapped to warm greys; `blue` is now Apple's `#0071e3`; and a `beige` palette was sampled from the natural titanium phone.
+  - **Why centrally:** about 360 class names change look at once, with no risk of missing a screen.
+- **Shell:**
+  - light frosted beige sidebar, where the active item is a white pill
+  - translucent top bar
+  - a large page title with a grey tagline (like "Shop iPhone" / "Take your pick")
+- **Components:**
+  - 18px-radius cards with soft shadows
+  - pill buttons
+  - underline tabs (like "All Models · Ease of Switching")
+  - larger KPI figures
+  - sentence-case form labels
+- **Charts:** the first series is Apple blue. The palette was re-validated for colour-blind separation (all checks pass).
+
+### 3.2 Data: customers on orders
+- Orders now carry `customer_id`, which cohorts, retention, RFM and CLV need.
+- **How it's generated:** a separate random stream walks the orders by date. About 36% of orders acquire a new customer; the rest go to an existing customer, weighted by `loyalty × e^(−days since last order / 75)`. That produces loyal repeat buyers *and* churners: 145 customers, 45% repeat, month-1 retention ≈ 27%.
+- **Why a separate random stream:** every other field (amount, date, status) is unchanged, so all earlier findings, SQL answers and Excel answers stay valid.
+
+### 3.3 New screen: Product Analytics
+Six tabs, explained in section 4: Metric tree, Funnel, Cohorts & retention, RFM & CLV, A/B testing, Anomalies.
+
+### 3.4 Refinements to existing screens
+- **Sales Dashboard, month comparison.** The latest month is usually incomplete, and comparing it with a full month showed false drops (e.g. −45%). The dashboard now compares **month to date vs the same days of last month**, and the label says so.
+- **Sales Dashboard, anomaly alerts.** A new strip shows weekly value against its expected band, with Spike/Drop pills and a link to the full analysis.
+- **Glossary.** Ten new terms: AOV, North Star, cohort, retention, RFM, CLV, p-value, MDE, SRM, z-score. They appear as ⓘ tips.
+- **Excel Lab.** The orders sheet now has column `I customer_id`. One exercise moved its input cell from `I2` to `K2`.
+
+### 3.5 Earlier rounds (for "what else did you build?")
+- Full audit and fixes: React version crash, SQL engine, CSV parser, zero-as-missing bugs, hiring cost understated by ₹38 lakh, and more. See `FINDINGS.md`.
+- Upload center (CSV/Excel), schemas with exact column names, Start Here guide, and help tips.
+- **SQL Lab:**
+  - column previews
+  - a visual schema diagram on hover
+  - **100 graded exercises**, Beginner → Analyst/Executive
+- **Excel Lab:**
+  - a live sheet with real formulas and dynamic arrays
+  - a pivot builder
+  - 66 graded exercises
+  - 32 VBA / Power Query / DAX lessons
+  - a downloadable practice workbook
+
+---
+
+## 4. Feature deep dives
+
+Each feature below covers the business question, how it works, the logic, its limits, and a 30-second demo.
+
+### 4.1 Metric tree and KPI dictionary
+**Business question:** "Revenue moved. Why?"
+
+**How it works:**
+```
+net revenue = active customers × orders per customer × AOV × keep rate
+keep rate   = net revenue ÷ gross revenue   (share not lost to cancels/returns)
+```
+This is an **identity**: the four drivers multiply back to net revenue exactly, and a test checks this.
+
+**Attributing the change (log decomposition):**
+- Because the drivers multiply, `ln(NR₁/NR₀) = Σ ln(driverᵢ₁/driverᵢ₀)`.
+- Each driver gets `ln(ratioᵢ) ÷ ln(total ratio)` of the change. The parts add up to the total exactly, with no leftover "interaction" term.
+- **Demo example (Aug vs Jul):** net revenue −₹1.1K. AOV −₹26.5K, offset by keep rate +₹15.7K, customers +₹6.4K and frequency +₹3.4K.
+- **Story:** "Order values fell sharply, but fewer cancellations and returns plus more customers almost fully offset it."
+
+**Uses the last complete month,** so a half-finished month never looks like a collapse.
+
+**KPI dictionary:** each metric has one definition, a formula, a role (North Star / Driver / Input / Guardrail) and a limit. Guardrails (cancel rate ≤ 12%, return rate ≤ 25%) show a status pill.
+
+**Why it matters:** in interviews, "how would you define X?" is often the real question. A dictionary shows you think about consistency across teams.
+
+**Limits:** monthly grain only; the attribution is descriptive, not causal.
+
+### 4.2 Funnel
+**Business question:** "Where do we lose orders?"
+
+**Steps:** Placed → Not cancelled → Shipped → Delivered → Kept (not returned). Each step keeps only the orders that reached it, so counts never increase (tested).
+
+**Maturity window (the key refinement):**
+- An order placed yesterday is "Pending" because it hasn't had time to ship, not because it failed.
+- By default, orders younger than 14 days are excluded, so in-flight orders don't look like drop-off. You can change the window.
+
+**Funnel by segment:** step conversion by region, category or fulfilment centre. Cells more than 5 points below the overall rate turn red.
+
+**Demo:** 385 orders → 89% not cancelled → 83% of those shipped → 71% delivered → **74% kept**. The biggest leak is shipped → delivered.
+
+**Interview angle:** "If the delivered step dropped, I'd segment by fulfilment centre and carrier first, check whether data latency (late status updates) explains it, then look at recent operational changes."
+
+### 4.3 Cohorts and retention
+**Business question:** "Do customers come back, and is that getting better?"
+
+**How it works:**
+- A customer's cohort is the month of their **first** order.
+- For each cohort and each month offset k, compute the share of the cohort with an order in month k.
+- Cancelled orders don't count as activity.
+
+**Retention curve:** the size-weighted average across cohorts **old enough** to have reached month k. Young cohorts would otherwise drag later months down.
+
+**Demo:**
+- M1 26.5%, M2 18.5%, M3 13%
+- repeat purchase rate 44.8%
+- 2.46 orders per customer over the year
+
+**Revenue view:** revenue per original cohort member by month. This is the building block for cohort-based LTV.
+
+**Why cohorts rather than overall retention:** fast growth in new users can hide falling retention in the overall number. Cohorts separate the two.
+
+**Limits:** monthly grain; "active" means placed an order. A product with a usage signal would use logins or sessions instead.
+
+### 4.4 RFM segmentation and CLV
+**Business question:** "Who are our best customers, and who is slipping away?"
+
+**R, F, M:**
+- Recency = days since last order. Frequency = number of orders. Monetary = net spend.
+- Each is scored 1–5 by **quintile**, using the average rank so ties share a score.
+- Recency is inverted: fewer days scores 5.
+
+**Segments, from R and F:**
+
+| Segment | Rule | Action |
+|---|---|---|
+| Champions | R 4–5, F 4–5 | Reward, referrals |
+| Loyal | R 3, F 4–5 | Upsell |
+| Potential loyalists | R 4–5, F 2–3 | Bundles, membership |
+| New | R 4–5, F 1 | Second-order nudge |
+| At risk | R 1–2, F 3–5 | Win-back now |
+| Needs attention | R 3, F 1–3 | Reminders |
+| Hibernating | R 2, F 1–2 | Cheap reactivation |
+| Lost | R 1, F 1–2 | Don't overspend |
+
+**CLV (simple, explainable):**
+```
+CLV = AOV × orders per customer per year × gross margin × expected lifespan (years)
+```
+- Margin and lifespan are editable.
+- Each customer's CLV uses their own AOV and order pace.
+
+**Pareto:** the top 20% of customers bring about **69%** of net revenue. Champions alone (32 customers) bring 43%.
+
+**Limits and better models to mention:**
+- **BG/NBD + Gamma-Gamma** (probabilistic "buy till you die"): handles churn uncertainty.
+- **Cohort-based LTV curves.**
+- **Discounting** future cash flows.
+
+### 4.5 A/B testing
+**Business question:** "Did the change work, and can we trust it?"
+
+**Conversion test (two-proportion z-test):**
+```
+p̂ = (x_A + x_B) / (n_A + n_B)                       pooled rate (assumes H₀: no difference)
+SE_pooled = √(p̂(1−p̂)(1/n_A + 1/n_B))
+z = (p_B − p_A) / SE_pooled,   p-value = 2(1 − Φ(|z|))
+95% CI for the difference uses the unpooled SE: √(p_A(1−p_A)/n_A + p_B(1−p_B)/n_B)
+```
+- **Example:** 10,000/1,000 vs 10,000/1,100 gives z = 2.31, **p = 0.021**, +10% relative uplift, and a CI that excludes 0. The result is significant at 5%.
+- **Why pooled for the test and unpooled for the CI:** the test assumes no difference, so both arms share one rate; the CI describes the actual difference.
+
+**Continuous metrics (Welch's t-test):** for revenue per user, where variances differ between arms.
+- `t = (x̄_B − x̄_A)/√(s²_A/n_A + s²_B/n_B)`, with Welch–Satterthwaite degrees of freedom.
+- The t distribution is computed with the regularised incomplete beta function.
+
+**Sample size (before launch):**
+```
+n per arm = [z_{1−α/2}·√(2p̄(1−p̄)) + z_{1−β}·√(p₁(1−p₁)+p₂(1−p₂))]² / (p₂−p₁)²
+```
+- 10% baseline, +10% relative MDE, α = 5%, power 80% gives **14,751 per arm** (matches standard calculators; tested).
+- Also shows how many days that takes at your traffic. Run whole weeks to cover weekday effects.
+
+**SRM check (sample ratio mismatch):**
+- A chi-square test of the observed split against the planned split.
+- If p < 0.001, the result is **blocked** with a warning, because broken assignment or logging invalidates everything.
+
+**Checklist shown in the app:**
+- no peeking or early stopping
+- guardrail metrics
+- multiple-testing correction
+- practical vs statistical significance
+
+**Implementation note:** the normal CDF uses Abramowitz–Stegun and the inverse uses Acklam's approximation. Both are tested against known values (Φ⁻¹(0.975) = 1.95996).
+
+### 4.6 Anomaly detection
+**Business question:** "Is this week unusual, or just noise?"
+
+**How it works (trailing z-score):**
+- For each point, take the mean and standard deviation of the **previous** N points, never including the point itself. Otherwise a spike inflates its own baseline and hides.
+- `z = (value − mean)/sd`, flagged when |z| ≥ 2.5 (adjustable: 2, 2.5, 3).
+- The shaded band on the chart is `mean ± threshold × sd`.
+
+**Metrics:**
+- weekly net revenue
+- weekly orders
+- daily contact volume per support line, with a window of at least 14 days so weekday patterns are covered
+- **Empty weeks are filled with 0,** so a week with no orders shows up as a drop instead of disappearing.
+
+**Demo:** flags the festive-sale week (z ≈ 9) and one July spike.
+
+**Limits and upgrades to mention:**
+- seasonality-aware baselines (same weekday last N weeks, or STL decomposition)
+- robust statistics (median and MAD) when history already contains outliers
+- forecast-residual alerts, e.g. Prophet or Holt-Winters intervals
+
+---
+
+## 5. Workforce planning engine (the other half of the project)
+
+| Piece | Logic |
+|---|---|
+| **Forecast** | Four methods: Holt-Winters (additive), linear trend × seasonal index, seasonal naive, moving average. *Auto* picks the lowest **WAPE** in a backtest whose length matches the planning horizon. Event uplifts multiply the weeks they overlap. |
+| **Required FTE** | `volume × AHT ÷ 3600 ÷ occupancy ÷ (paid hrs × (1 − shrinkage) × (1 − NPT))` |
+| **Supply** | Weekly roll-forward: attrition (monthly rate converted to weekly with `1 − (1 − m)^(12/52)`), training weeks, a ramp curve for new hires, temps who leave after their contract, and capped overtime. |
+| **Hiring** | Permanent classes cover the **sustained** requirement (10-week rolling minimum). Temps cover peaks. Inside the hiring lead time, overtime is used first, because a class started now would still be in training when the peak passes. |
+| **Intraday** | **Erlang C** for real-time queues: the smallest agent count that meets the SL target within the occupancy cap. Workload ÷ occupancy for deferred work. Flags when the long-term occupancy assumption is unrealistic. |
+| **Budget** | Monthly variable cost (in-house labour, vendor per-unit, OT premium, hiring cost) vs OP1/OP2, with variance and cost per contact. |
+| **KPIs** | WAPE, bias, SL attainment, occupancy, AHT and shrinkage drift, HC adherence, cost variance, defect Pareto. |
+
+**Headline finding from the demo** (see `FINDINGS.md`): headcount was delivered to plan and the forecast was accurate (WAPE 4.3%), yet SL missed target in 56% of line-weeks. The gap comes from **planning assumptions** (occupancy too high, shrinkage under-planned), and the Erlang check confirms it.
+
+---
+
+## 6. SQL and Excel labs (skills evidence)
+- **SQL Lab:**
+  - 100 auto-graded exercises: 25 each at Beginner, Intermediate, Advanced and Analyst/Executive
+  - covers JOINs, CTEs, window functions (`ROW_NUMBER`), running totals, conditional aggregation, YoY/MoM growth, WAPE, Pareto
+  - grading compares result **values**, ignoring column aliases
+- **Excel Lab:**
+  - **engine:** written for this project. Includes a tokenizer, a recursive-descent parser with Excel precedence (`-2^2 = 4`), dynamic-array spill with `#SPILL!`, `#CIRC!` cycle detection, and 115 functions (XLOOKUP, SUMIFS with wildcards, FILTER/SORT/UNIQUE, LET, TEXT, EOMONTH, …)
+  - pivot builder with the matching SUMIFS formula
+  - 32 lessons on VBA, Power Query (M) and Power Pivot (DAX)
+
+---
+
+## 7. Likely interview questions, with answers
+
+1. **"Why a two-proportion z-test and not a t-test?"**
+   Conversion is binary, so its variance is p(1−p). With large samples the z-test is the standard choice. For continuous metrics like revenue per user I use Welch's t-test, because the variances differ.
+2. **"What is a p-value?"**
+   If there were truly no difference, it's the probability of seeing a gap at least this large. It is *not* the probability that the variant is better.
+3. **"What is SRM and why check it first?"**
+   Sample ratio mismatch means the arms don't match the planned split, for example 52/48 on a 50/50 test. It points to assignment or logging bugs, so no metric result can be trusted until it's fixed.
+4. **"How do you choose the sample size?"**
+   From the baseline rate, the smallest effect worth detecting (MDE), α and power. Halving the MDE needs about four times the users. Fix the sample size before launch and don't stop early.
+5. **"What if you check results every day and stop when p < 0.05?"**
+   That's peeking, and it inflates false positives. Fix the duration in advance, or use sequential testing (e.g. alpha spending or always-valid p-values).
+6. **"How do you define an active customer?"**
+   Here it's a customer with at least one non-cancelled order in the period. In a usage product it would be a meaningful action, not just a login. The key is to write the definition down: the KPI dictionary.
+7. **"Revenue dropped 10%. How do you investigate?"**
+   1. Check the data first: a partial period, pipeline delays, definition changes.
+   2. Decompose: customers × frequency × AOV × keep rate.
+   3. Segment the driver that moved (region, category, new vs returning).
+   4. Check external events and releases.
+   5. Quantify each piece and recommend.
+8. **"Why is month-to-date compared with the same days of last month?"**
+   A partial month always looks like a drop against a full month. Like-for-like windows remove that artefact.
+9. **"What is a cohort analysis and when do you need it?"**
+   Group users by start period and track them over time. Overall retention mixes old and new users, so growth can hide decay. Cohorts separate the two.
+10. **"How would you improve the CLV estimate?"**
+    Use probabilistic models (BG/NBD for purchase frequency, Gamma-Gamma for value), cohort revenue curves, a contribution margin rather than a flat margin, and discounting.
+11. **"What's RFM good for, and what are its limits?"**
+    It's quick, explainable segmentation that maps to actions. Limits: quintiles are relative, so scores shift as the base changes; it ignores product mix and channel; and it isn't predictive by itself.
+12. **"How does your anomaly detection avoid false alarms?"**
+    The baseline excludes the current point. The threshold is adjustable. Daily data uses at least 14 days so weekly seasonality is covered. Next step: seasonal baselines or median/MAD.
+13. **"What's a North Star metric, and why net revenue?"**
+    The one metric that best reflects value delivered. Net revenue (after cancellations and returns) rewards orders customers actually keep, not just checkout clicks. Guardrails stop optimising it at the expense of experience.
+14. **"What's a guardrail metric?"**
+    A metric that must not get worse while you optimise another, e.g. cancel rate, return rate or latency.
+15. **"Funnel conversion dropped at the delivered step. What next?"**
+    Check whether it's real: status-update latency, or a maturity issue. Then segment by fulfilment centre, carrier and region, and compare against operational changes.
+16. **"Explain WAPE vs MAPE."**
+    WAPE = Σ|error| / Σ actual. It is volume-weighted and stable when some actuals are small. MAPE averages percentage errors and blows up near zero.
+17. **"How does the forecast pick a method?"**
+    A backtest on held-out recent weeks, with a holdout as long as the planning horizon (capped at 26). It picks the lowest WAPE, so the choice is judged on the look-ahead the plan needs.
+18. **"Explain the FTE formula."**
+    Workload hours = volume × AHT. Divide by occupancy (agents can't be busy 100% of the time), then by the productive hours one FTE delivers after shrinkage and non-productive time.
+19. **"What does Erlang C assume?"**
+    Random (Poisson) arrivals, exponential handle times, no abandonment, and infinite queue patience. It's conservative where callers abandon. Erlang A handles abandonment.
+20. **"Why permanent hires for the base and temps for peaks?"**
+    Hiring permanently for a 4-week peak leaves you overstaffed afterwards. The sustained (rolling minimum) requirement is the safe permanent level.
+21. **"How do you make sure your numbers are right?"**
+    Pure functions with unit tests: identities (the drivers multiply back), known textbook values (z, sample size, Φ⁻¹), monotonic funnels, and a cohort example built by hand. Plus browser tests for the UI.
+22. **"How would you scale this to real company data?"**
+    Move the transforms into a warehouse (SQL/dbt models for orders, customers and cohorts), keep the metric definitions in a semantic layer, schedule refreshes, and point the UI at an API. The pure logic modules port almost directly.
+23. **"Simpson's paradox: have you seen it here?"**
+    A segment can show better conversion in every region yet worse overall if the mix shifts. That's why the funnel-by-segment view and mix-aware decomposition matter.
+24. **"Correlation vs causation in the driver chart?"**
+    The decomposition is accounting, not causation. It says *which* driver moved, not *why*. Causal claims need experiments or quasi-experiments (difference-in-differences, synthetic control).
+25. **"What would you build next?"**
+    See section 8.
+
+---
+
+## 8. Not built yet: good "next steps" to discuss
+- **Attribution:** marketing channel contribution (last-touch vs data-driven).
+- **Causal impact** for launches without an A/B test (synthetic control, difference-in-differences).
+- **Forecasting with external drivers** (price, promotions, holidays) using regression or gradient boosting.
+- **CUPED variance reduction** for A/B tests, which cuts the sample size needed using pre-period data.
+- **Sequential testing** with always-valid p-values, so results can be monitored safely.
+- **Probabilistic CLV** (BG/NBD + Gamma-Gamma) and churn prediction.
+- **Warehouse version:** dbt models plus a semantic layer, so the KPI dictionary becomes the single source of truth.
+
+---
+
+## 9. 5-minute live demo script
+1. **Sales Dashboard:** KPI tiles compare month to date with the same days last month. Point at the anomaly strip and its spike week.
+2. **Product Analytics → Metric tree:** "Net revenue barely moved, but AOV fell sharply; fewer returns and more customers offset it." Show the KPI dictionary and guardrails.
+3. **Funnel:** explain the maturity window, then switch the segment to `fulfillment_center`.
+4. **Cohorts:** M1 ≈ 27%. Explain why young cohorts are excluded from later months of the average curve.
+5. **RFM & CLV:** Champions bring 43% of revenue. Click *At risk* to list customers for a win-back campaign.
+6. **A/B testing:**
+   1. Enter 10,000/1,000 vs 10,000/1,100: p = 0.021, significant.
+   2. Change control users to 10,600: the SRM warning blocks the result.
+   3. Show the sample size planner.
+7. **SQL Lab:** hover *Schema reference*, then solve one Analyst-level exercise.
+8. Close with: "every number here has a unit test, and the definitions are in one place."

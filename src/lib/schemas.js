@@ -184,7 +184,7 @@ export const SCHEMAS = [
   {
     id: 'orders',
     label: 'Orders / sales records',
-    usedBy: ['Sales Dashboard', 'Data Grid', 'Data Cleaning'],
+    usedBy: ['Sales Dashboard', 'Product Analytics', 'Data Grid', 'Data Cleaning'],
     description: 'Any table of orders or transactions\nExtra columns are kept, and you can use them in the dashboard (map them with the gear icon) and in SQL',
     required: [
       col('date', 'date', 'Order date', '2026-03-14'),
@@ -196,6 +196,7 @@ export const SCHEMAS = [
       col('region', 'text', 'Region or market', 'North'),
       col('category', 'text', 'Product category', 'Electronics'),
       col('units', 'number', 'Units in the order', 2),
+      col('customer_id', 'text', 'Who placed the order, needed for cohorts, retention, RFM and CLV', 'CUST-1001'),
     ],
     keepExtra: true,
     modes: [

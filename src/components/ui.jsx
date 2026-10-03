@@ -3,19 +3,19 @@ import { CheckCircle, AlertTriangle, AlertCircle, Info, X, ChevronUp, ChevronDow
 import { InfoTip, Prose } from './help';
 
 export const Card = ({ children, className = '', ...rest }) => (
-  <div className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`} {...rest}>
+  <div className={`bg-white rounded-2xl border border-black/[0.06] shadow-soft ${className}`} {...rest}>
     {children}
   </div>
 );
 
 export const Badge = ({ children, type = 'default', className = '' }) => {
   const styles = {
-    default: 'bg-slate-100 text-slate-700',
-    success: 'bg-emerald-100 text-emerald-800',
-    warning: 'bg-amber-100 text-amber-800',
-    danger: 'bg-rose-100 text-rose-800',
-    blue: 'bg-blue-100 text-blue-800',
-    purple: 'bg-violet-100 text-violet-800',
+    default: 'bg-beige-100 text-slate-700',
+    success: 'bg-emerald-50 text-emerald-800',
+    warning: 'bg-amber-50 text-amber-800',
+    danger: 'bg-rose-50 text-rose-800',
+    blue: 'bg-blue-50 text-blue-700',
+    purple: 'bg-violet-50 text-violet-800',
   };
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${styles[type] || styles.default} ${className}`}>
@@ -39,8 +39,9 @@ export const StatusPill = ({ status = 'info', children }) => {
 export const PageHeader = ({ title, subtitle, actions }) => (
   <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
     <div>
-      <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-      {subtitle && <p className="text-sm text-slate-500 mt-1 max-w-3xl"><Prose text={subtitle} /></p>}
+      {/* The shell shows the screen name as the page title, so this one is a section heading. */}
+      <h2 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h2>
+      {subtitle && <p className="text-[15px] text-slate-500 mt-1 max-w-3xl leading-relaxed"><Prose text={subtitle} /></p>}
     </div>
     {actions && <div className="flex flex-wrap gap-2 items-center">{actions}</div>}
   </div>
@@ -53,21 +54,21 @@ export const KPICard = ({ title, value, sub, delta, deltaUnit = '%', goodWhenUp 
   const up = shown >= 0;
   const good = shown === 0 || up === goodWhenUp;
   return (
-    <div className={`relative text-left w-full bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between h-full ${onClick ? 'hover:shadow-md hover:border-blue-300 transition-all' : ''}`}>
+    <div className={`relative text-left w-full bg-white rounded-2xl border border-black/[0.06] shadow-soft p-5 flex flex-col justify-between h-full ${onClick ? 'hover:shadow-lift hover:-translate-y-0.5 transition-all duration-200' : ''}`}>
       {onClick && (
         // Stretched button keeps the whole card clickable while the ⓘ tip
         // stays a separate control (buttons can't nest).
-        <button type="button" onClick={onClick} aria-label={`${title}: open details`} className="absolute inset-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button type="button" onClick={onClick} aria-label={`${title}: open details`} className="absolute inset-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
       )}
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+          <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide flex items-center gap-1">
             <span>{title}</span>
             {info && (typeof info === 'string' ? <InfoTip term={info} /> : info)}
           </p>
-          <div className="text-2xl font-bold text-slate-900 mt-2 truncate">{value}</div>
+          <div className="text-[1.75rem] leading-tight font-semibold tracking-tight text-slate-900 mt-2 truncate">{value}</div>
         </div>
-        {icon && <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 shrink-0">{icon}</div>}
+        {icon && <div className="p-2.5 bg-beige-100 rounded-full shrink-0">{icon}</div>}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs min-h-[20px]">
         {hasDelta && (
@@ -87,8 +88,8 @@ export const ChartCard = ({ title, subtitle, actions, children, height = 300, cl
   <Card className={`p-5 flex flex-col ${className}`}>
     <div className="flex justify-between items-start gap-3 mb-3">
       <div>
-        <h3 className="font-bold text-slate-800">{title}</h3>
-        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+        <h3 className="font-semibold text-lg tracking-tight text-slate-900">{title}</h3>
+        {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
       </div>
       {actions}
     </div>
@@ -98,14 +99,14 @@ export const ChartCard = ({ title, subtitle, actions, children, height = 300, cl
 
 export const Field = ({ label, hint, children, className = '' }) => (
   <label className={`block ${className}`}>
-    <span className="text-xs font-bold uppercase text-slate-500 flex justify-between gap-2">
+    <span className="text-[13px] font-medium text-slate-600 flex justify-between gap-2">
       <span>{label}</span>{hint && <span className="normal-case font-normal text-slate-400">{hint}</span>}
     </span>
     <div className="mt-1">{children}</div>
   </label>
 );
 
-const inputBase = 'p-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+const inputBase = 'px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
 // Callers may pass their own width (w-40, w-64…); otherwise fill the parent.
 const inputCls = (className = '') => `${/(^|\s)w-/.test(className) ? '' : 'w-full'} ${inputBase} ${className}`;
 
@@ -153,26 +154,26 @@ export const NumberInput = ({ value, onChange, min, max, step = 'any', className
 
 export const Button = ({ variant = 'primary', size = 'md', className = '', children, ...rest }) => {
   const v = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm',
-    secondary: 'bg-white border border-slate-300 hover:bg-slate-50 text-slate-700',
-    success: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm',
+    primary: 'bg-blue-600 hover:bg-blue-700 text-white',
+    secondary: 'bg-white border border-slate-300 hover:border-slate-400 hover:bg-beige-50 text-slate-800',
+    success: 'bg-emerald-600 hover:bg-emerald-700 text-white',
     danger: 'bg-white border border-rose-200 text-rose-700 hover:bg-rose-50',
-    ghost: 'text-slate-600 hover:bg-slate-100',
-    dark: 'bg-slate-800 hover:bg-slate-900 text-white',
+    ghost: 'text-blue-600 hover:bg-blue-50',
+    dark: 'bg-slate-900 hover:bg-black text-white',
   }[variant];
-  const s = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-4 py-2 text-sm';
+  const s = size === 'sm' ? 'px-3 py-1 text-xs' : 'px-5 py-2 text-sm';
   return (
-    <button type="button" className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${v} ${s} ${className}`} {...rest}>
+    <button type="button" className={`inline-flex items-center justify-center gap-2 rounded-full font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${v} ${s} ${className}`} {...rest}>
       {children}
     </button>
   );
 };
 
 export const FileButton = ({ accept, onFile, children, variant = 'primary', size = 'md' }) => {
-  const v = variant === 'secondary' ? 'bg-white border border-slate-300 hover:bg-slate-50 text-slate-700' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm';
-  const s = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-4 py-2 text-sm';
+  const v = variant === 'secondary' ? 'bg-white border border-slate-300 hover:border-slate-400 hover:bg-beige-50 text-slate-800' : 'bg-blue-600 hover:bg-blue-700 text-white';
+  const s = size === 'sm' ? 'px-3 py-1 text-xs' : 'px-5 py-2 text-sm';
   return (
-    <label className={`inline-flex items-center gap-2 rounded-lg font-semibold cursor-pointer transition-colors ${v} ${s}`}>
+    <label className={`inline-flex items-center gap-2 rounded-full font-medium cursor-pointer transition-colors ${v} ${s}`}>
       {children}
       <input
         type="file" accept={accept} className="hidden"
@@ -192,14 +193,14 @@ export const EmptyState = ({ title = 'Nothing here yet', children, icon }) => (
 );
 
 export const Tabs = ({ tabs, value, onChange }) => (
-  <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-lg w-fit" role="tablist">
+  <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-black/[0.08] w-full" role="tablist">
     {tabs.map(t => {
       const opt = typeof t === 'object' ? t : { value: t, label: t };
       return (
         <button
           key={opt.value} type="button" role="tab" aria-selected={value === opt.value}
           onClick={() => onChange(opt.value)}
-          className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${value === opt.value ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+          className={`-mb-px pb-2.5 pt-1 text-[15px] border-b-2 transition-colors ${value === opt.value ? 'border-slate-900 text-slate-900 font-medium' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
         >
           {opt.label}
         </button>
@@ -228,10 +229,10 @@ export const DataTable = ({ columns, rows, maxHeight = 420, emptyText = 'No rows
   return (
     <div className="overflow-auto" style={{ maxHeight }}>
       <table className="w-full text-sm">
-        <thead className="bg-slate-50 sticky top-0 z-10">
+        <thead className="bg-beige-50 sticky top-0 z-10">
           <tr>
             {columns.map(c => (
-              <th key={c.key} className={`px-3 py-2 border-b text-xs font-bold text-slate-600 uppercase tracking-wide whitespace-nowrap ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
+              <th key={c.key} className={`px-3 py-2.5 border-b border-black/[0.06] text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
                 <button type="button" className="inline-flex items-center gap-1 hover:text-slate-900" onClick={() => toggle(c.key)}>
                   {c.label}
                   {sort && sort.key === c.key && (sort.dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}

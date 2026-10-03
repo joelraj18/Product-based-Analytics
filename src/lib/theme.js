@@ -1,6 +1,6 @@
 // Chart palette (validated categorical order, light surface). Colors follow the
 // entity, never its rank: assign by stable index (e.g. plan line order).
-export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
+export const SERIES = ['#0071e3', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
 
 // Reserved for state; always paired with an icon + label.
 export const STATUS = { good: '#0ca30c', warning: '#fab219', serious: '#ec835a', critical: '#d03b3b' };

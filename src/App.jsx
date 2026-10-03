@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard, Database, Table, Kanban, Settings as SettingsIcon, Brush, LogOut, Menu,
-  Gauge, TrendingUp, Users, Clock, Wallet, ShieldAlert, Activity, Compass, UploadCloud, FileSpreadsheet,
+  Gauge, TrendingUp, Users, Clock, Wallet, ShieldAlert, Activity, Compass, UploadCloud, FileSpreadsheet, LineChart as LineChartIcon,
 } from 'lucide-react';
 import { ToastProvider, useToast } from './components/ui';
 import { HelpBox } from './components/help';
@@ -22,6 +22,7 @@ import PlanningKPIs from './modules/PlanningKPIs';
 import Dashboard from './modules/Dashboard';
 import SqlLab from './modules/SqlLab';
 import ExcelLab from './modules/ExcelLab';
+import ProductAnalytics from './modules/ProductAnalytics';
 import DataGrid from './modules/DataGrid';
 import DataCleaning from './modules/DataCleaning';
 import Projects from './modules/Projects';
@@ -31,41 +32,42 @@ export const NAV = [
   {
     group: 'Get started',
     items: [
-      { id: 'start', label: 'Start Here', icon: Compass, component: StartHere },
-      { id: 'upload', label: 'Upload Data', icon: UploadCloud, component: UploadCenter },
+      { id: 'start', label: 'Start Here', tagline: 'Your tour of the planning loop', icon: Compass, component: StartHere },
+      { id: 'upload', label: 'Upload Data', tagline: 'Your files, ready in seconds', icon: UploadCloud, component: UploadCenter },
     ],
   },
   {
     group: 'Workforce Planning',
     items: [
-      { id: 'hub', label: 'Planning Hub', icon: Gauge, component: PlanningHub },
-      { id: 'forecast', label: 'Demand Forecast', icon: TrendingUp, component: DemandForecast },
-      { id: 'capacity', label: 'Capacity & Headcount', icon: Users, component: CapacityPlanner },
-      { id: 'intraday', label: 'Intraday Staffing', icon: Clock, component: IntradayStaffing },
-      { id: 'budget', label: 'Budget & OP', icon: Wallet, component: BudgetPlanner },
-      { id: 'scenarios', label: 'Scenarios & Risks', icon: ShieldAlert, component: ScenarioRisk },
-      { id: 'kpis', label: 'Planning KPIs', icon: Activity, component: PlanningKPIs },
+      { id: 'hub', label: 'Planning Hub', tagline: 'Every program at a glance', icon: Gauge, component: PlanningHub },
+      { id: 'forecast', label: 'Demand Forecast', tagline: 'Know the volume before it arrives', icon: TrendingUp, component: DemandForecast },
+      { id: 'capacity', label: 'Capacity & Headcount', tagline: 'The right people, at the right time', icon: Users, component: CapacityPlanner },
+      { id: 'intraday', label: 'Intraday Staffing', tagline: 'Hour by hour, queue by queue', icon: Clock, component: IntradayStaffing },
+      { id: 'budget', label: 'Budget & OP', tagline: 'Cost that lands on plan', icon: Wallet, component: BudgetPlanner },
+      { id: 'scenarios', label: 'Scenarios & Risks', tagline: 'Stress test the plan before the peak', icon: ShieldAlert, component: ScenarioRisk },
+      { id: 'kpis', label: 'Planning KPIs', tagline: 'How well did we plan', icon: Activity, component: PlanningKPIs },
     ],
   },
   {
     group: 'Analytics',
     items: [
-      { id: 'dashboard', label: 'Sales Dashboard', icon: LayoutDashboard, component: Dashboard },
-      { id: 'sql', label: 'SQL Lab', icon: Database, component: SqlLab },
-      { id: 'excel', label: 'Excel Lab', icon: FileSpreadsheet, component: ExcelLab },
-      { id: 'grid', label: 'Data Grid', icon: Table, component: DataGrid },
-      { id: 'cleaning', label: 'Data Cleaning', icon: Brush, component: DataCleaning },
+      { id: 'dashboard', label: 'Sales Dashboard', tagline: 'Revenue, fulfilment and alerts', icon: LayoutDashboard, component: Dashboard },
+      { id: 'product', label: 'Product Analytics', tagline: 'Growth, retention and experiments', icon: LineChartIcon, component: ProductAnalytics },
+      { id: 'sql', label: 'SQL Lab', tagline: 'Ask your data anything', icon: Database, component: SqlLab },
+      { id: 'excel', label: 'Excel Lab', tagline: 'Formulas, pivots and practice', icon: FileSpreadsheet, component: ExcelLab },
+      { id: 'grid', label: 'Data Grid', tagline: 'Edit like a spreadsheet', icon: Table, component: DataGrid },
+      { id: 'cleaning', label: 'Data Cleaning', tagline: 'Clean data, honest numbers', icon: Brush, component: DataCleaning },
     ],
   },
   {
     group: 'Workspace',
     items: [
-      { id: 'projects', label: 'Workboard', icon: Kanban, component: Projects },
-      { id: 'settings', label: 'Settings', icon: SettingsIcon, component: Settings },
+      { id: 'projects', label: 'Workboard', tagline: 'Deliverables on track', icon: Kanban, component: Projects },
+      { id: 'settings', label: 'Settings', tagline: 'Make it yours', icon: SettingsIcon, component: Settings },
     ],
   },
 ];
-const ALL_ITEMS = NAV.flatMap(g => g.items);
+const ALL_ITEMS = NAV.flatMap(g => g.items.map(i => ({ ...i, group: g.group })));
 
 const NavItem = ({ icon: Icon, label, active, expanded, onClick }) => (
   <button
@@ -73,12 +75,12 @@ const NavItem = ({ icon: Icon, label, active, expanded, onClick }) => (
     onClick={onClick}
     title={expanded ? undefined : label}
     aria-current={active ? 'page' : undefined}
-    className={`w-full flex items-center p-2.5 rounded-lg transition-colors duration-150 ${
-      active ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+    className={`w-full flex items-center px-3 py-2 rounded-xl transition-colors duration-150 ${
+      active ? 'bg-white text-slate-900 shadow-soft font-medium' : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'
     } ${expanded ? 'gap-3' : 'justify-center'}`}
   >
-    <Icon size={18} aria-hidden="true" />
-    {expanded && <span className="font-medium text-sm truncate">{label}</span>}
+    <Icon size={17} aria-hidden="true" className={active ? 'text-blue-600' : ''} />
+    {expanded && <span className="text-sm truncate">{label}</span>}
   </button>
 );
 
@@ -108,23 +110,23 @@ const Shell = ({ user, onLogout }) => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
-      {sidebarOpen && <div className="fixed inset-0 bg-slate-900/40 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
+    <div className="flex h-screen bg-[#f5f3ef] font-sans text-slate-900 overflow-hidden">
+      {sidebarOpen && <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-20 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
       <aside
-        className={`${sidebarOpen ? 'w-64 translate-x-0' : 'w-16 -translate-x-full lg:translate-x-0'} fixed lg:static inset-y-0 left-0 bg-slate-900 text-slate-300 transition-all duration-200 flex flex-col shadow-xl z-30`}
+        className={`${sidebarOpen ? 'w-64 translate-x-0' : 'w-16 -translate-x-full lg:translate-x-0'} fixed lg:static inset-y-0 left-0 bg-beige-100/95 backdrop-blur-xl border-r border-black/[0.06] text-slate-700 transition-all duration-200 flex flex-col z-30`}
         aria-label="Main navigation"
       >
-        <div className="h-16 flex items-center justify-center border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-2 font-bold text-white tracking-wider">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"><span className="text-lg">W</span></div>
+        <div className="h-16 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-2.5 font-semibold text-slate-900 tracking-tight">
+            <div className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-beige-300 to-beige-500 shadow-soft flex items-center justify-center ring-1 ring-black/5"><span className="text-white text-base font-bold">W</span></div>
             {sidebarOpen && <span className="text-xl">WorkX</span>}
           </div>
         </div>
         <nav className="flex-1 py-4 px-2 space-y-5 overflow-y-auto">
           {NAV.map(group => (
             <div key={group.group}>
-              {sidebarOpen && <div className="px-2 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">{group.group}</div>}
-              <div className="space-y-1">
+              {sidebarOpen && <div className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{group.group}</div>}
+              <div className="space-y-0.5">
                 {group.items.map(item => (
                   <NavItem key={item.id} icon={item.icon} label={item.label} active={current.id === item.id} expanded={sidebarOpen} onClick={() => go(item.id)} />
                 ))}
@@ -132,8 +134,8 @@ const Shell = ({ user, onLogout }) => {
             </div>
           ))}
         </nav>
-        <div className="p-2 border-t border-slate-800">
-          <button type="button" onClick={onLogout} className={`flex items-center w-full p-2.5 rounded-lg hover:bg-slate-800 text-rose-300 transition-colors ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
+        <div className="p-2 border-t border-black/[0.06]">
+          <button type="button" onClick={onLogout} className={`flex items-center w-full px-3 py-2 rounded-xl hover:bg-white/60 text-slate-600 hover:text-rose-700 transition-colors ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
             <LogOut size={18} aria-hidden="true" />
             {sidebarOpen && <span className="text-sm">Sign Out</span>}
           </button>
@@ -141,35 +143,41 @@ const Shell = ({ user, onLogout }) => {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shadow-sm z-10 gap-3 shrink-0">
+        <header className="h-14 bg-white/70 backdrop-blur-xl border-b border-black/[0.06] flex items-center justify-between px-4 md:px-8 z-10 gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <button type="button" aria-label="Toggle navigation" onClick={() => setSidebarOpen(o => !o)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-600">
-              <Menu size={20} />
+            <button type="button" aria-label="Toggle navigation" onClick={() => setSidebarOpen(o => !o)} className="p-2 rounded-full hover:bg-black/5 text-slate-600">
+              <Menu size={18} />
             </button>
-            <h1 className="text-base md:text-lg font-semibold text-slate-800 truncate">{current.label}</h1>
+            <span className="text-sm text-slate-500 truncate">{current.group}</span>
           </div>
           <div className="flex items-center gap-3">
             {weeks.length > 0 && (
-              <div className="hidden md:block px-3 py-1 bg-blue-50 text-blue-800 rounded-full text-xs font-semibold border border-blue-200 whitespace-nowrap">
+              <div className="hidden md:block px-3 py-1 bg-beige-100 text-slate-700 rounded-full text-xs font-medium whitespace-nowrap">
                 Plan horizon: wk {weeks[0]} → {weeks[weeks.length - 1]}
               </div>
             )}
-            <div className="flex items-center gap-3 pl-3 border-l">
+            <div className="flex items-center gap-3 pl-3 border-l border-black/[0.08]">
               <div className="text-right hidden sm:block">
-                <div className="text-sm font-bold text-slate-800 truncate max-w-[160px]">{user.name || user.email}</div>
-                <div className="text-xs text-slate-500">Planner</div>
+                <div className="text-sm font-medium text-slate-900 truncate max-w-[160px]">{user.name || user.email}</div>
+                <div className="text-xs text-slate-500">Analyst</div>
               </div>
-              <div className="w-9 h-9 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-full text-white flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 bg-gradient-to-br from-beige-300 to-beige-500 rounded-full text-white flex items-center justify-center font-semibold text-sm ring-1 ring-black/5">
                 {initials}
               </div>
             </div>
           </div>
         </header>
-        <div className="flex-1 overflow-auto p-4 md:p-6">
+        <div className="flex-1 overflow-auto px-4 py-6 md:px-10 md:py-10">
+          <div className="max-w-[1400px] mx-auto">
+          <div className="mb-6">
+            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-900">{current.label}</h1>
+            {current.tagline && <p className="text-xl md:text-2xl font-semibold text-slate-400 mt-1 tracking-tight">{current.tagline}</p>}
+          </div>
           <HelpBox moduleId={current.id} onNavigate={go} />
           <ErrorBoundary resetKey={current.id}>
             <Module onNavigate={go} />
           </ErrorBoundary>
+          </div>
         </div>
       </main>
     </div>

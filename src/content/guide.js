@@ -32,6 +32,16 @@ export const GLOSSARY = {
   scenario: { term: 'Scenario or what if', short: 'Change an input such as volume, AHT, shrinkage or attrition to see how the plan breaks and what a fix would cost' },
   pareto: { term: 'Pareto (80/20)', short: 'Sort causes by how often they happen to find the few root causes behind most problems' },
   planLine: { term: 'Plan line', short: 'One program or queue at one site that you plan headcount for, like Customer Support · Voice at North Hub' },
+  aov: { term: 'AOV (average order value)', short: 'Revenue divided by the number of orders\nA driver of revenue together with customers and order frequency' },
+  northstar: { term: 'North Star metric', short: 'The one number that best captures the value customers get, here net revenue\nEvery other metric is a driver or a guardrail for it' },
+  cohort: { term: 'Cohort', short: 'A group of customers who started in the same period, usually the month of their first order\nComparing cohorts separates real retention changes from growth in new users' },
+  retention: { term: 'Retention', short: 'Share of a cohort that is still active some months later\nMonth 1 retention is the share that ordered again in the month after their first order' },
+  rfm: { term: 'RFM', short: 'Recency, frequency and monetary value, each scored 1 to 5\nThe scores place every customer in a segment such as Champions or At risk' },
+  clv: { term: 'CLV (customer lifetime value)', short: 'Profit a customer is expected to bring over their whole relationship\nHere AOV × orders per year × margin × expected lifespan in years' },
+  pvalue: { term: 'p value', short: 'If there were truly no difference, the chance of seeing a gap at least this large\nBelow the significance level (often 5%) the result is called significant' },
+  mde: { term: 'MDE (minimum detectable effect)', short: 'The smallest lift worth detecting\nSmaller effects need many more users, roughly four times as many for half the effect' },
+  srm: { term: 'SRM (sample ratio mismatch)', short: 'When the users in each arm do not match the planned split\nIt points to broken assignment or logging, so the test result cannot be trusted' },
+  zscore: { term: 'z score', short: 'How many standard deviations a value sits from the expected mean\nAbove about 2 or 3 the value is unusual' },
   sql: { term: 'SQL', short: 'A language for asking questions of tables\nSELECT picks columns FROM a table WHERE a condition holds, GROUP BY summarises and JOIN combines tables' },
 };
 
@@ -130,6 +140,16 @@ export const HELP = {
       'Schema: see every table’s columns and how tables connect',
       'Practice: 100 graded exercises in four levels, from `SELECT` to analyst questions for leadership',
     ],
+  },
+  product: {
+    purpose: 'The questions a product company asks every week: what drives revenue, where orders leak, whether customers come back, who the best customers are, whether an experiment worked and what looks unusual',
+    steps: [
+      'Metric tree: the North Star (net revenue) split into drivers that multiply back to it, with a chart of which driver moved it this month',
+      'Funnel: placed to kept, with the leak at each step and a comparison by segment\nThe maturity window leaves out orders still in flight',
+      'Cohorts and RFM: retention by month of first order, then segments and lifetime value for every customer',
+      'A/B testing: significance, confidence interval, sample size and a sample ratio check\nAnomalies: weeks or days outside the expected range',
+    ],
+    feeds: ['orders'],
   },
   excel: {
     purpose: 'Work and practise in a spreadsheet that runs real Excel formulas on your data, with pivot tables and lessons for VBA, Power Query and DAX',

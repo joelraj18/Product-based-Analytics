@@ -29,6 +29,7 @@ Everything runs client-side. Data lives in the browser's local storage, can be i
 | Module | What it does |
 |---|---|
 | **Sales Dashboard** | KPIs, month-over-month trend, status mix and category breakdown for any order-level dataset. Columns are mapped in the UI, and every tile, bar and month drills down to records you can export. |
+| **Product Analytics** | The weekly questions of a product company. **Metric tree**: net revenue (North Star) = customers × orders per customer × AOV × keep rate, with a log decomposition of what drove the change and a KPI dictionary with guardrails. **Funnel**: placed → kept, with a maturity window and comparison by segment. **Cohorts & retention**: monthly cohort heatmap and retention curve. **RFM & CLV**: quintile scores, segments with actions, lifetime value, Pareto. **A/B testing**: two proportion z test, Welch t test, confidence interval, sample size planner and sample ratio mismatch check. **Anomalies**: trailing z score alerts on revenue, orders and contact volume. |
 | **SQL Lab** | Full SQL (JOINs, sub-queries, CTEs, window functions, CASE) over every workspace table plus **your uploaded files**. The sidebar shows every table's column names in order with an example row (click a column to insert it). A **Schema reference** button in the editor pops up a visual diagram of how tables connect (hover to peek, click to pin). Tabs: **Query** (history, CSV export), **Schema** (diagram and column previews) and **Practice** (**100 graded exercises** in four levels: Beginner, Intermediate, Advanced, Analyst & Executive). |
 | **Excel Lab** | A live spreadsheet that runs real Excel formulas (over 100 functions including `SUMIFS`, `XLOOKUP`, `INDEX/MATCH`, `SUMPRODUCT`, `TEXT`, `EOMONTH`) and **dynamic arrays** (`FILTER`, `SORT`, `UNIQUE`, `SEQUENCE`, `LET`) that spill like Excel 365, on any workspace or uploaded table. Tabs: **Sheet**, **Pivot table** (rows, columns, values, filter, % of total, plus the equivalent `SUMIFS`), **Practice** (66 auto-graded formula and pivot exercises, and a downloadable practice workbook) and **VBA, Power Query & DAX** (32 guided lessons with code to run in desktop Excel). |
 | **Data Grid** | Inline cell editing, search, sort, add and delete rows or columns, and CSV import (replace or append) and export. |
@@ -53,13 +54,17 @@ Open **Upload Data** in the app and drop a **CSV, TSV, TXT, JSON or Excel (.xlsx
 | Planned events | `name, start, end, uplift_pct` | `line_id` | Demand Forecast |
 | Planning defects | `date, line_id, category` | `impact_fte, status` | Planning KPIs |
 | Risk register | `title, likelihood, impact` | `line_id, owner, mitigation, status` | Scenarios & Risks |
-| Orders / sales | `date, amount` | `id, status, region, category, units` and any others | Sales Dashboard, Data Grid, Data Cleaning |
+| Orders / sales | `date, amount` | `id, status, region, category, units, customer_id` and any others | Sales Dashboard, Product Analytics (cohorts and RFM need `customer_id`), Data Grid, Data Cleaning |
 
 The **Column reference** on the Upload page explains each column in plain English and has a downloadable template for every dataset. The files in [`demo-data/`](demo-data/) are ready-made examples.
 
 ## New to planning or SQL?
 
 Start with the **Start Here** page in the app. It has a 5-step tour, a diagram of how the screens connect, and a searchable glossary (FTE, AHT, shrinkage, occupancy, Erlang C, WAPE, OP1/OP2 and more). Every screen also has a **"What am I looking at?"** box, and key numbers have **ⓘ** tips. **SQL Lab → Practice** has 100 graded exercises from `SELECT *` to analyst questions for leadership, and **Excel Lab → Practice** has 66 graded formula and pivot exercises plus VBA, Power Query and DAX lessons.
+
+## Interview guide
+
+[`docs/INTERVIEW_GUIDE.md`](docs/INTERVIEW_GUIDE.md) explains every feature for a data analyst interview: a 60 second pitch, how each feature works and the maths behind it, limits, a demo script and 25 likely questions with answers.
 
 ## Demo data & findings
 

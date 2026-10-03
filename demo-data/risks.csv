@@ -1,5 +1,5 @@
 id,title,lineId,likelihood,impact,owner,mitigation,status,due
-R-1,Peak-season volume above forecast,CS-VOICE,3,5,Planning,Pre-approve 15% OT cap and a 2-week vendor overflow contract,Open,
+R-1,Peak season volume above forecast,CS-VOICE,3,5,Planning,Preapprove a 15% OT cap and a 2 week vendor overflow contract,Open,
 R-2,Hiring class delayed by recruiting backlog,CS-CHAT,3,4,Talent Acquisition,Start sourcing 2 weeks earlier; keep a waitlist of 10 candidates,Open,
 R-3,AHT increase after policy change,PARTNER-EMAIL,2,3,Program,Macro templates + refresher training before launch,Monitoring,
 R-4,Vendor attrition above 5%/month,RETURNS-OPS,4,3,Vendor Mgmt,Weekly attrition review; contractual staffing SLA,Open,
