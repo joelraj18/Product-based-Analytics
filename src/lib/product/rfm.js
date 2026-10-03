@@ -21,6 +21,8 @@ export const quintileScores = (values, higherIsBetter = true) => {
   });
 };
 
+export const frequencyScore = (orders) => (orders >= 6 ? 5 : orders >= 4 ? 4 : Math.max(1, Math.min(3, orders)));
+
 export const SEGMENTS = [
   { name: 'Champions', rule: 'R 4 to 5 and F 4 to 5', action: 'Reward, early access, referrals', test: (r, f) => r >= 4 && f >= 4 },
   { name: 'Loyal', rule: 'R 3 and F 4 to 5', action: 'Upsell and keep them engaged', test: (r, f) => r === 3 && f >= 4 },
@@ -36,7 +38,6 @@ export const buildRfm = (orders, { margin = 0.3, lifespanYears = 3 } = {}) => {
   const rows = orders.filter(o => o.customer && o.bucket !== 'cancelled');
   if (!rows.length) return { customers: [], segments: [], summary: null };
   const asOf = rows[rows.length - 1].day + 1;
-  const firstDay = rows[0].day;
   const by = {};
   rows.forEach(o => {
     const c = by[o.customer] || (by[o.customer] = { customer: o.customer, first: o.day, last: o.day, orders: 0, gross: 0, net: 0 });
@@ -48,17 +49,28 @@ export const buildRfm = (orders, { margin = 0.3, lifespanYears = 3 } = {}) => {
   });
   const list = Object.values(by).map(c => ({ ...c, recency: asOf - c.last }));
   const R = quintileScores(list.map(c => c.recency), false);
-  const F = quintileScores(list.map(c => c.orders), true);
+  // Most customers order once, so frequency quintiles would all tie; fixed
+  // bins (1, 2, 3, 4 to 5, 6 or more orders) keep the score meaningful.
+  const F = list.map(c => frequencyScore(c.orders));
   const M = quintileScores(list.map(c => c.net), true);
   // Predictive CLV = AOV × orders per year × margin × expected lifespan.
+  // Orders per year is the repeat rate: orders after each customer's first,
+  // divided by the years each customer has been with us (their exposure).
+  // Counting the first order would make every brand new customer look like
+  // a heavy buyer, and dividing by the whole data span would understate
+  // customers who joined recently.
   const totalNet = list.reduce((s, c) => s + c.net, 0);
   const totalOrders = list.reduce((s, c) => s + c.orders, 0);
-  const years = Math.max((asOf - firstDay) / 365, 1 / 12);
+  const tenure = (c) => Math.max((asOf - c.first) / 365, 1 / 12);
+  const exposure = list.reduce((s, c) => s + tenure(c), 0);
   const aov = totalNet / totalOrders;
-  const ordersPerYear = totalOrders / list.length / years;
+  const ordersPerYear = list.reduce((s, c) => s + c.orders - 1, 0) / exposure;
   const clv = aov * ordersPerYear * margin * lifespanYears;
+  // Each customer's own repeat pace, shrunk toward the average with six
+  // months of prior history (a credibility weight): a customer who just
+  // made a first order gets the average pace, not zero or fifty a year.
   const PRIOR_YEARS = 0.5;
-  const paceOf = (c) => (c.orders + ordersPerYear * PRIOR_YEARS) / ((asOf - c.first) / 365 + PRIOR_YEARS);
+  const paceOf = (c) => (c.orders - 1 + ordersPerYear * PRIOR_YEARS) / ((asOf - c.first) / 365 + PRIOR_YEARS);
   const customers = list.map((c, i) => {
     const seg = SEGMENTS.find(s => s.test(R[i], F[i], M[i]));
     return {

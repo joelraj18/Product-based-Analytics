@@ -10,7 +10,7 @@ volume history ─► demand forecast ─► required FTE ─► headcount & hir
                          actuals ─► planning KPIs ─► defects / RCA ─► weekly review
 ```
 
-Everything runs client-side. Data lives in the browser's local storage, can be imported and exported as CSV, and can be backed up or restored as JSON. A realistic demo dataset loads on first sign-in, so you can explore every screen right away.
+Everything runs client-side. Data lives in the browser's local storage, can be imported and exported as CSV, and can be backed up or restored as JSON. A realistic demo dataset loads on first sign-in, so you can explore every screen right away. It includes about 12,000 orders from January 2024 to December 2026, with growth, festive peaks, sale events and repeat customers.
 
 ## Modules
 

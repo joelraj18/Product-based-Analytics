@@ -55,11 +55,16 @@ export class Sheet {
 
   static fromRows(columns, rows) {
     const s = new Sheet();
-    columns.forEach((c, j) => s.setRaw(0, j, c));
+    // Data cells are written straight into the map (no per cell cache reset),
+    // so loading thousands of rows stays fast.
+    columns.forEach((c, j) => { if (!isBlank(c)) s.raw.set(`0,${j}`, c); });
     rows.forEach((r, i) => columns.forEach((c, j) => {
       const v = r[c];
-      if (!isBlank(v)) s.setRaw(i + 1, j, typeof v === 'string' && v.startsWith('=') ? `'${v}` : v);
+      if (!isBlank(v)) s.raw.set(`${i + 1},${j}`, typeof v === 'string' && v.startsWith('=') ? `'${v}` : v);
     }));
+    s.maxRow = rows.length;
+    s.maxCol = Math.max(0, columns.length - 1);
+    s.reset();
     return s;
   }
 

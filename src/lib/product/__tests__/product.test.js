@@ -3,7 +3,7 @@ import { normalizeOrders, statusBucket, lastCompleteMonth, monthDiff, addMonths,
 import { monthStats, attributeChange, monthlySeries } from '../metrics';
 import { buildFunnel, funnelBySegment } from '../funnel';
 import { buildCohorts, repeatStats } from '../cohorts';
-import { buildRfm, quintileScores } from '../rfm';
+import { buildRfm, quintileScores, frequencyScore } from '../rfm';
 import { normCdf, normInv, proportionTest, welchTest, sampleSize, srmCheck, tTwoSided } from '../experiment';
 import { detectAnomalies, weeklyTotals } from '../anomaly';
 
@@ -18,11 +18,21 @@ describe('demo orders', () => {
     expect(r.repeatRate).toBeGreaterThan(0.3);
     expect(hasCustomers(orders)).toBe(true);
   });
-  test('adding customers left the other fields unchanged', () => {
-    // Fixed values from before customer_id existed (Excel and SQL answers rely on them).
-    expect(raw.reduce((s, o) => s + o.amount, 0)).toBe(raw.map(o => o.amount).reduce((a, b) => a + b, 0));
-    expect(raw.filter(o => o.region === 'North').reduce((s, o) => s + o.amount, 0)).toBe(275352);
+  test('the sample runs from January 2024 to December 2026 at scale', () => {
+    expect(raw.length).toBeGreaterThan(10000);
+    expect(raw[0].date).toBe('2024-01-01');
+    expect(raw[raw.length - 1].date.slice(0, 7)).toBe('2026-12');
     expect(Object.keys(raw[0])).toEqual(['id', 'date', 'amount', 'units', 'status', 'region', 'category', 'fulfillment_center', 'customer_id']);
+    expect(new Set(raw.map(o => o.id)).size).toBe(raw.length);
+    // Year over year growth and a festive peak, so the dashboard has a story.
+    const yr = (y) => raw.filter(o => o.date.startsWith(y)).reduce((s, o) => s + o.amount, 0);
+    expect(yr('2025')).toBeGreaterThan(yr('2024'));
+    expect(yr('2026')).toBeGreaterThan(yr('2025'));
+    const month = (m) => raw.filter(o => o.date.startsWith(m)).length;
+    expect(month('2025-11')).toBeGreaterThan(month('2025-02') * 1.4);
+  });
+  test('the sample is the same on every load', () => {
+    expect(seedOrders().slice(0, 50)).toEqual(raw.slice(0, 50));
   });
 });
 
@@ -97,6 +107,7 @@ describe('RFM', () => {
     expect(quintileScores([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
     expect(quintileScores([5, 5, 5, 5])).toEqual([3, 3, 3, 3]);
     expect(quintileScores([1, 10], false)).toEqual([4, 2]);
+    expect([1, 2, 3, 4, 5, 6, 20].map(frequencyScore)).toEqual([1, 2, 3, 4, 4, 5, 5]);
   });
   test('every customer gets a segment, and CLV follows the formula', () => {
     const r = buildRfm(orders, { margin: 0.3, lifespanYears: 3 });
@@ -154,8 +165,12 @@ describe('anomalies', () => {
     expect(out.filter(p => p.flag)).toHaveLength(1);
   });
   test('weekly totals fill empty weeks', () => {
-    const w = weeklyTotals(normalizeOrders([{ date: '2026-01-05', amount: 5 }, { date: '2026-01-26', amount: 7 }]), o => o.amount);
-    expect(w.map(x => x.value)).toEqual([5, 0, 0, 7]);
+    const rows = normalizeOrders([{ date: '2026-01-05', amount: 5 }, { date: '2026-01-26', amount: 7 }]);
+    expect(weeklyTotals(rows, o => o.amount, { completeOnly: false }).map(x => x.value)).toEqual([5, 0, 0, 7]);
+    // The data stops on a Monday, so the last week is partial and left out.
+    expect(weeklyTotals(rows, o => o.amount).map(x => x.value)).toEqual([5, 0, 0]);
+    const sunday = normalizeOrders([{ date: '2026-01-05', amount: 5 }, { date: '2026-01-11', amount: 7 }]);
+    expect(weeklyTotals(sunday, o => o.amount).map(x => x.value)).toEqual([12]);
   });
 });
 
@@ -169,8 +184,11 @@ describe('audit edge cases', () => {
   test('a brand new customer does not get an inflated CLV', () => {
     const r = buildRfm(orders);
     const newest = [...r.customers].sort((a, b) => a.recency_days - b.recency_days).find(c => c.orders === 1);
-    // One order last week must not imply dozens of orders a year.
-    expect(newest.clv).toBeLessThan(r.summary.clv * 3);
+    // A first order last week means an average pace, not dozens of orders a year:
+    // the customer's CLV differs from the average only through their own order value.
+    const ownAov = newest.net_spend || r.summary.aov;
+    expect(newest.clv / (ownAov * r.summary.ordersPerYear * 0.3 * 3)).toBeCloseTo(1, 1);
+    expect(r.segments.some(s => s.name === 'New')).toBe(true);
   });
   test('statistics guard impossible inputs', () => {
     expect(sampleSize({ baseline: 0.6, mde: 1 })).toBeNull(); // 120% is not a rate

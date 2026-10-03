@@ -56,10 +56,17 @@ How to present WorkX in a data analyst interview at a product company: what chan
   - sentence-case form labels
 - **Charts:** the first series is Apple blue. The palette was re-validated for colour-blind separation (all checks pass).
 
-### 3.2 Data: customers on orders
-- Orders now carry `customer_id`, which cohorts, retention, RFM and CLV need.
-- **How it's generated:** a separate random stream walks the orders by date. About 36% of orders acquire a new customer; the rest go to an existing customer, weighted by `loyalty × e^(−days since last order / 75)`. That produces loyal repeat buyers *and* churners: 145 customers, 45% repeat, month-1 retention ≈ 27%.
-- **Why a separate random stream:** every other field (amount, date, status) is unchanged, so all earlier findings, SQL answers and Excel answers stay valid.
+### 3.2 Data: an industry-scale order sample with customers
+- **Size and span:** 12,009 orders from **1 January 2024 to 31 December 2026**, placed by about 3,500 customers. It's a made-up but realistic e-commerce sample, deterministic so it is identical on every load.
+- **How daily volume is generated:** `orders per day = base × 1.27^years × month season × weekday × sale lift × noise`
+  - **Growth:** 27% a year. Revenue goes ₹73L (2024) → ₹1.0Cr (2025) → ₹1.45Cr (2026).
+  - **Seasonality:** a January–February dip, and a festive peak in October–November (about 1.4×).
+  - **Weekday rhythm:** busiest on weekends (Saturday 1.18×).
+  - **Sale events:** about 1.5–2.3× volume, with prices about 18% lower.
+  - **Mix shift:** Electronics and the South region grow faster, so the mix changes over time.
+  - **Statuses:** orders in the last days are still in flight (Pending or Shipped); older orders show a realistic small backlog. Apparel returns more often, and sale days bring more cancellations.
+- **Customers:** walking forward in time, about 30% of orders acquire a new customer. The rest go to a returning customer, picked from a random handful weighted by `loyalty × e^(−days since last order / 90)`. That gives loyal repeat buyers *and* churners: 53% repeat, month-1 retention ≈ 25%.
+- **Older browsers:** a browser that still holds the original 400-order demo gets the new sample automatically. Orders a user uploaded or edited are never replaced.
 
 ### 3.3 New screen: Product Analytics
 Six tabs, explained in section 4: Metric tree, Funnel, Cohorts & retention, RFM & CLV, A/B testing, Anomalies.
@@ -70,7 +77,17 @@ Six tabs, explained in section 4: Metric tree, Funnel, Cohorts & retention, RFM 
 - **Glossary.** Ten new terms: AOV, North Star, cohort, retention, RFM, CLV, p-value, MDE, SRM, z-score. They appear as ⓘ tips.
 - **Excel Lab.** The orders sheet now has column `I customer_id`. One exercise moved its input cell from `I2` to `K2`.
 
-### 3.5 Audit round (after the redesign)
+### 3.5 Latest round: data scale, A/B charts, schema popover
+- **Order sample** from 2024 to December 2026 at scale (section 3.2). The Sales Dashboard now shows three years of growth, seasonality and sale spikes.
+- **A/B testing charts:**
+  - "Likely range of each conversion rate": two bell curves, one per arm. The less they overlap, the stronger the evidence.
+  - A labelled confidence-interval chart for the difference, with a "No difference" line at zero. It's green when significant and grey when not. The continuous-metric test gets the same chart.
+- **Schema reference:** the button now sits outside the SQL editor. The diagram opens in a layer above the whole page, sized to the screen, so it's never cut off.
+- **Start Here banner:** a deeper sand than the page, espresso text and cream buttons, with no blue.
+- **Performance fix the bigger data exposed:** alasql re-runs a scalar subquery like `(SELECT AVG(amount) FROM orders)` once per outer row. On 12,000 orders that took about 35 seconds. SQL Lab now runs any subquery that doesn't depend on the outer query once and substitutes the value: 35s → under 0.5s, same answer (tested). Correlated subqueries still run per row, so the correlated exercise now uses the small `inventory` table, and its hint explains why.
+- **Analytics fixes:** frequency bins in RFM; CLV based on repeat orders over exposure; anomaly weeks exclude a partial last week.
+
+### 3.6 Audit round (after the redesign)
 A full pass over every screen at desktop and phone width (390px), plus stress tests: an empty orders table, an upload with no customer or status column, and impossible A/B inputs. There were no crashes, console errors or sideways overflow. Fixes made:
 
 | Area | Problem | Fix |
@@ -86,7 +103,7 @@ A full pass over every screen at desktop and phone width (390px), plus stress te
 | Customer picker | With no customer column, the picker displayed "date" as if selected | Shows "None" |
 | UI | Duplicate page titles (shell title + section title), a dark navy hero on the beige theme, centred pages misaligned with their titles on wide screens, the Excel sheet opening scrolled sideways | Titles that repeat the page name are hidden from view (screen readers still get them); beige hero; left-aligned widths; the sheet opens at column A |
 
-### 3.6 Earlier rounds (for "what else did you build?")
+### 3.7 Earlier rounds (for "what else did you build?")
 - Full audit and fixes: React version crash, SQL engine, CSV parser, zero-as-missing bugs, hiring cost understated by ₹38 lakh, and more. See `FINDINGS.md`.
 - Upload center (CSV/Excel), schemas with exact column names, Start Here guide, and help tips.
 - **SQL Lab:**
@@ -119,8 +136,8 @@ This is an **identity**: the four drivers multiply back to net revenue exactly, 
 **Attributing the change (log decomposition):**
 - Because the drivers multiply, `ln(NR₁/NR₀) = Σ ln(driverᵢ₁/driverᵢ₀)`.
 - Each driver gets `ln(ratioᵢ) ÷ ln(total ratio)` of the change. The parts add up to the total exactly, with no leftover "interaction" term.
-- **Demo example (Aug vs Jul):** net revenue −₹1.1K. AOV −₹26.5K, offset by keep rate +₹15.7K, customers +₹6.4K and frequency +₹3.4K.
-- **Story:** "Order values fell sharply, but fewer cancellations and returns plus more customers almost fully offset it."
+- **Demo example (Dec vs Nov 2026):** net revenue −₹51K (−3.3%). Fewer active customers −₹137K and lower frequency −₹36K, partly offset by a better keep rate +₹68K and higher AOV +₹53K.
+- **Story:** "After the festive peak, fewer customers came back in December. The ones who did spent more per order and returned less, which cushioned the drop."
 
 **Uses the last complete month,** so a half-finished month never looks like a collapse.
 
@@ -156,9 +173,9 @@ This is an **identity**: the four drivers multiply back to net revenue exactly, 
 **Retention curve:** the size-weighted average across cohorts **old enough** to have reached month k. Young cohorts would otherwise drag later months down.
 
 **Demo:**
-- M1 26.5%, M2 18.5%, M3 13%
-- repeat purchase rate 44.8%
-- 2.46 orders per customer over the year
+- M1 25%, M2 20%, M3 17%, M6 12%: steep early drop, then a loyal core that keeps buying
+- repeat purchase rate 53%
+- 3.2 orders per customer over three years
 
 **Revenue view:** revenue per original cohort member by month. This is the building block for cohort-based LTV.
 
@@ -171,8 +188,8 @@ This is an **identity**: the four drivers multiply back to net revenue exactly, 
 
 **R, F, M:**
 - Recency = days since last order. Frequency = number of orders. Monetary = net spend.
-- Each is scored 1–5 by **quintile**, using the average rank so ties share a score.
-- Recency is inverted: fewer days scores 5.
+- **Recency and Monetary** are scored 1–5 by **quintile**, using the average rank so ties share a score. Recency is inverted: fewer days scores 5.
+- **Frequency uses fixed bins:** 1, 2, 3, 4–5 and 6+ orders. Almost half of customers order once, so quintiles would put them all in the same tied rank, and the "New" segment could never appear.
 
 **Segments, from R and F:**
 
@@ -189,12 +206,14 @@ This is an **identity**: the four drivers multiply back to net revenue exactly, 
 
 **CLV (simple, explainable):**
 ```
-CLV = AOV × orders per customer per year × gross margin × expected lifespan (years)
+CLV = AOV × repeat orders per year × gross margin × expected lifespan (years)
+repeat orders per year = Σ (orders − 1) ÷ Σ years each customer has been with us
 ```
+- **Why repeat orders over exposure:** counting each customer's first order would make every brand-new customer look like a heavy buyer. Dividing by the whole three-year span instead of each customer's own tenure would understate recent customers. Demo: about 1.7 repeat orders a year and CLV ≈ ₹3,800 at 30% margin over 3 years.
 - Margin and lifespan are editable.
-- Each customer's CLV uses their own AOV and order pace. The pace is **shrunk toward the average** with six months of "prior" history: `pace = (orders + avg rate × 0.5) / (tenure in years + 0.5)`. Without this, a customer whose only order was last week would look like they order 50 times a year. This is the same idea as Bayesian smoothing or a credibility weight.
+- Each customer's CLV uses their own AOV and their own repeat pace, **shrunk toward the average** with six months of "prior" history: `pace = (orders − 1 + avg rate × 0.5) / (tenure in years + 0.5)`. A customer who just made a first order gets the average pace, not zero and not fifty a year. This is the same idea as Bayesian smoothing or a credibility weight.
 
-**Pareto:** the top 20% of customers bring about **69%** of net revenue. Champions alone (32 customers) bring 43%.
+**Pareto:** the top 20% of customers bring about **63%** of net revenue. Champions alone (448 customers, 13%) bring 36%.
 
 **Limits and better models to mention:**
 - **BG/NBD + Gamma-Gamma** (probabilistic "buy till you die"): handles churn uncertainty.
@@ -251,7 +270,9 @@ n per arm = [z_{1−α/2}·√(2p̄(1−p̄)) + z_{1−β}·√(p₁(1−p₁)+p
 - daily contact volume per support line, with a window of at least 14 days so weekday patterns are covered
 - **Empty weeks are filled with 0,** so a week with no orders shows up as a drop instead of disappearing.
 
-**Demo:** flags the festive-sale week (z ≈ 9) and one July spike.
+- **The last week is left out when it's incomplete,** for the same reason as partial months.
+
+**Demo:** it flags the planted sale weeks on its own: early October festive sales (z ≈ 7.7 in 2025, 6.6 in 2026), late November, and the July mid-year sale. A good talking point: "the detector rediscovered the promo calendar, so I'd feed known events in as covariates to avoid alerting on planned spikes."
 
 **Limits and upgrades to mention:**
 - seasonality-aware baselines (same weekday last N weeks, or STL decomposition)
@@ -315,7 +336,7 @@ n per arm = [z_{1−α/2}·√(2p̄(1−p̄)) + z_{1−β}·√(p₁(1−p₁)+p
 10. **"How would you improve the CLV estimate?"**
     Use probabilistic models (BG/NBD for purchase frequency, Gamma-Gamma for value), cohort revenue curves, a contribution margin rather than a flat margin, and discounting.
 11. **"What's RFM good for, and what are its limits?"**
-    It's quick, explainable segmentation that maps to actions. Limits: quintiles are relative, so scores shift as the base changes; it ignores product mix and channel; and it isn't predictive by itself.
+    It's quick, explainable segmentation that maps to actions. Limits: quintiles are relative, so scores shift as the base changes; heavy ties (most customers ordering once) break quintiles, which is why frequency uses fixed bins here; it ignores product mix and channel; and it isn't predictive by itself.
 12. **"How does your anomaly detection avoid false alarms?"**
     The baseline excludes the current point. The threshold is adjustable. Daily data uses at least 14 days so weekly seasonality is covered. Next step: seasonal baselines or median/MAD.
 13. **"What's a North Star metric, and why net revenue?"**
@@ -362,8 +383,8 @@ n per arm = [z_{1−α/2}·√(2p̄(1−p̄)) + z_{1−β}·√(p₁(1−p₁)+p
 1. **Sales Dashboard:** KPI tiles compare month to date with the same days last month. Point at the anomaly strip and its spike week.
 2. **Product Analytics → Metric tree:** "Net revenue barely moved, but AOV fell sharply; fewer returns and more customers offset it." Show the KPI dictionary and guardrails.
 3. **Funnel:** explain the maturity window, then switch the segment to `fulfillment_center`.
-4. **Cohorts:** M1 ≈ 27%. Explain why young cohorts are excluded from later months of the average curve.
-5. **RFM & CLV:** Champions bring 43% of revenue. Click *At risk* to list customers for a win-back campaign.
+4. **Cohorts:** M1 ≈ 25%. Explain why young cohorts are excluded from later months of the average curve.
+5. **RFM & CLV:** Champions (13% of customers) bring 36% of revenue. Click *At risk* to list customers for a win-back campaign.
 6. **A/B testing:**
    1. Enter 10,000/1,000 vs 10,000/1,100: p = 0.021, significant.
    2. Change control users to 10,600: the SRM warning blocks the result.

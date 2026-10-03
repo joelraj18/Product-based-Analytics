@@ -1,7 +1,7 @@
 import { SCHEMAS, SCHEMA_BY_ID, validate, normalizeHeader, suggestSchema, templateRows } from '../schemas';
 import { gridToTable, detectHeaderRow, parseTextTable, parseJsonTable } from '../fileImport';
 import { mergeImport } from '../importMerge';
-import { runSql, sameResult, rewriteMinMax } from '../sqlRunner';
+import { runSql, sameResult, rewriteMinMax, hoistScalarSubqueries } from '../sqlRunner';
 import { builtinTables, sanitizeTableName } from '../sqlTables';
 import { buildPlan } from '../planEngine';
 import { PRACTICE, LEVELS } from '../../content/sqlPractice';
@@ -119,6 +119,19 @@ describe('SQL practice', () => {
     expect(runSql("SELECT MIN(date) AS a FROM volume_history WHERE line_id = 'CS-VOICE'", tables)[0].a).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(runSql('SELECT MAX(amount) AS m FROM orders', tables)[0].m).toBe(Math.max(...ws.orders.map(o => o.amount)));
     expect(() => runSql('SELECT MAX( FROM orders', tables)).toThrow(/MAX|Parse/);
+  });
+  test('uncorrelated scalar subqueries are computed once, correlated ones are left alone', () => {
+    const run = (q) => (q.includes('o.region') ? (() => { throw new Error('alias o'); })() : [{ v: 42 }]);
+    expect(hoistScalarSubqueries('SELECT * FROM orders WHERE amount > (SELECT AVG(amount) FROM orders)', run)).toBe('SELECT * FROM orders WHERE amount > 42');
+    expect(hoistScalarSubqueries("SELECT 100.0 * SUM(amount) / (SELECT SUM(amount) FROM orders WHERE x = ')') FROM t", run)).toBe('SELECT 100.0 * SUM(amount) / 42 FROM t');
+    const kept = ['SELECT * FROM (SELECT 1) AS t', 'SELECT * FROM t WHERE c IN (SELECT c FROM u)', 'SELECT * FROM t WHERE EXISTS (SELECT 1 FROM u)', 'SELECT * FROM orders o WHERE amount = (SELECT MAX(amount) FROM orders o2 WHERE o2.region = o.region)'];
+    kept.forEach(q => expect(hoistScalarSubqueries(q, run)).toBe(q));
+    // Same answer as without hoisting, and fast on the full sample.
+    const started = Date.now();
+    const rows = runSql('SELECT COUNT(*) AS n FROM orders WHERE amount > (SELECT AVG(amount) FROM orders)', tables);
+    expect(Date.now() - started).toBeLessThan(3000);
+    const avg = ws.orders.reduce((a, o) => a + o.amount, 0) / ws.orders.length;
+    expect(rows[0].n).toBe(ws.orders.filter(o => o.amount > avg).length);
   });
   test('uploaded table names are sanitised', () => {
     expect(sanitizeTableName('My Sales 2026.xlsx')).toBe('my_sales_2026');
