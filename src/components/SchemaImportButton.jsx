@@ -17,12 +17,12 @@ const SchemaImportButton = ({ schemaId, mode, children, size = 'md', variant = '
     try {
       const v = await readForSchema(file, schemaId);
       if (!v.ok) {
-        notify(`${file.name} can't be imported as ${schema.label}.\n${explainProblems(schemaId, v)}\nTip: Upload Data → Column reference has a template.`, 'error');
+        notify(`${file.name} can’t be imported as ${schema.label}\n${explainProblems(schemaId, v)}\nTip: Upload Data → Column reference has a template`, 'error');
         return;
       }
       const result = applyImport(ws, schemaId, mode || schema.modes[0].id, v.rows);
-      const extra = [v.skipped ? `${v.skipped} row(s) skipped.` : '', ...result.warnings].filter(Boolean).join('\n');
-      notify(`Imported ${v.rows.length} row(s) from ${file.name}${v.sheet && /\.xlsx$/i.test(file.name) ? ` (sheet "${v.sheet}")` : ''} into ${schema.label}.${extra ? `\n${extra}` : ''}`, result.warnings.length || v.skipped ? 'warning' : 'success');
+      const extra = [v.skipped ? `${v.skipped} row(s) skipped` : '', ...result.warnings].filter(Boolean).join('\n');
+      notify(`Imported ${v.rows.length} row(s) from ${file.name}${v.sheet && /\.xlsx$/i.test(file.name) ? ` (sheet “${v.sheet}”)` : ''} into ${schema.label}${extra ? `\n${extra}` : ''}`, result.warnings.length || v.skipped ? 'warning' : 'success');
     } catch (e) {
       notify(e.message, 'error');
     }

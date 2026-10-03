@@ -89,7 +89,7 @@ const Shell = ({ user, onLogout }) => {
     const onFull = () => {
       if (warnedFull.current) return;
       warnedFull.current = true;
-      notify('Browser storage is full: your latest changes work now but may not survive a reload. Download a backup in Settings, or delete large uploads you no longer need.', 'warning');
+      notify('Browser storage is full\nYour latest changes work now but may not survive a reload\nDownload a backup in Settings, or delete large uploads you no longer need', 'warning');
     };
     window.addEventListener('workx-storage-full', onFull);
     return () => window.removeEventListener('workx-storage-full', onFull);

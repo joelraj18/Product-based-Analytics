@@ -63,9 +63,9 @@ export const skewness = (arr) => {
 
 export const describeSkew = (skew) => {
   const a = Math.abs(skew);
-  if (a > 1) return 'Highly skewed — impute with median';
-  if (a > 0.5) return 'Moderately skewed — impute with median';
-  return 'Roughly symmetric — mean is fine';
+  if (a > 1) return 'Highly skewed, so impute with the median';
+  if (a > 0.5) return 'Moderately skewed, so impute with the median';
+  return 'Roughly symmetric, so the mean is fine';
 };
 
 // IQR outlier fences.

@@ -69,7 +69,7 @@ export const applyImport = (ws, schemaId, mode, rows) => {
   if (['volume_history', 'actuals', 'defects'].includes(schemaId)) {
     const known = new Set((ws.lines || []).map(l => l.id));
     const unknown = [...new Set(rows.map(r => String(r.line_id)))].filter(id => !known.has(id));
-    if (unknown.length) warnings.push(`line_id not found in Plan lines: ${unknown.slice(0, 5).join(', ')}${unknown.length > 5 ? '…' : ''}. Add them in Capacity & Headcount or upload a plan_lines file.`);
+    if (unknown.length) warnings.push(`These line ids are not in Plan lines yet: ${unknown.slice(0, 5).map(u => `\`${u}\``).join(', ')}${unknown.length > 5 ? '…' : ''}\nAdd them in Capacity & Headcount or upload a Plan lines file`);
   }
   return { count: next.length, imported: rows.length, warnings };
 };

@@ -43,41 +43,41 @@ const PlanningKPIs = () => {
 
   const wbr = () => {
     const lines_ = [
-      `# Weekly planning review — ${today()}`,
+      `# Weekly planning review, ${today()}`,
       `Scope: ${lineId === 'all' ? 'all plan lines' : lineId} · last ${range === 'all' ? 'all' : range} weeks`,
       '',
       '## Headline KPIs',
-      `- Forecast accuracy: WAPE ${pct(overall.wape)}, bias ${signedPct(overall.bias)}${last ? ` (latest ${period === 'monthly' ? 'month' : 'week'}: WAPE ${pct(last.wape)})` : ''}`,
-      `- Service level: ${pct(overall.sl)} vs target ${pct(overall.slTarget)}; ${pct(overall.slAttainment, 0)} of line-weeks met target`,
-      `- Occupancy ${pct(overall.occupancy)}; shrinkage ${signedPts(overall.shrinkVar)} vs plan; AHT ${signedPct(overall.ahtVar)} vs plan`,
-      `- HC plan adherence ${pct(overall.hcAdherence)}; cost ${signedPct(overall.costVar)} vs plan (${formatCurrency(overall.costActual, currency)})`,
+      `• Forecast accuracy: WAPE ${pct(overall.wape)}, bias ${signedPct(overall.bias)}${last ? ` (latest ${period === 'monthly' ? 'month' : 'week'}: WAPE ${pct(last.wape)})` : ''}`,
+      `• Service level: ${pct(overall.sl)} vs target ${pct(overall.slTarget)}, and ${pct(overall.slAttainment, 0)} of line weeks met target`,
+      `• Occupancy ${pct(overall.occupancy)}, shrinkage ${signedPts(overall.shrinkVar)} vs plan, AHT ${signedPct(overall.ahtVar)} vs plan`,
+      `• HC plan adherence ${pct(overall.hcAdherence)}, cost ${signedPct(overall.costVar)} vs plan (${formatCurrency(overall.costActual, currency)})`,
       '',
       '## Top defect drivers',
-      ...paretoRows.slice(0, 3).map(p => `- ${p.category}: ${p.count} (${pct(p.pct, 0)}, cumulative ${pct(p.cumPct, 0)})`),
+      ...paretoRows.slice(0, 3).map(p => `• ${p.category}: ${p.count} (${pct(p.pct, 0)}, cumulative ${pct(p.cumPct, 0)})`),
       '',
       '## Lines missing SL target in latest week',
       ...(() => {
         const lw = weeks[weeks.length - 1];
         const miss = actuals.filter(a => a.week_start === lw && Number(a.sl_actual) < Number(a.sl_target));
-        return miss.length ? miss.map(m => `- ${m.line_id}: SL ${m.sl_actual}% vs ${m.sl_target}% (HC ${m.actual_hc}/${m.planned_hc})`) : ['- None'];
+        return miss.length ? miss.map(m => `• ${m.line_id}: SL ${m.sl_actual}% vs ${m.sl_target}% (HC ${m.actual_hc} of ${m.planned_hc})`) : ['• None'];
       })(),
     ];
     const text = lines_.join('\n');
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(() => {});
     downloadFile(text, `planning_review_${today()}.md`, 'text/markdown');
-    notify('Weekly review summary copied to clipboard and downloaded.');
+    notify('Weekly review summary copied to the clipboard and downloaded');
   };
 
   const addDefect = () => {
     setDefects([{ ...newDefect, id: `DEF-${Date.now().toString(36).toUpperCase()}`, date: today(), status: 'Open' }, ...defects]);
-    notify('Defect logged.');
+    notify('Defect logged');
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Planning KPIs"
-        subtitle="Daily/weekly/monthly planning performance: forecast accuracy, service level, productivity drift, plan adherence and cost — with root-cause tracking."
+        subtitle="Weekly and monthly planning performance: forecast accuracy, service level, productivity drift, plan adherence and cost, with root cause tracking"
         actions={(
           <>
             <LineSelect lines={lines} value={lineId} onChange={setLineId} allowAll className="w-56" />
@@ -108,7 +108,7 @@ const PlanningKPIs = () => {
             </ComposedChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Service level vs target" subtitle="Volume-weighted across lines" height={280}>
+        <ChartCard title="Service level vs target" subtitle="Weighted by volume across lines" height={280}>
           <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
             <LineChart data={series}>
               <CartesianGrid {...GRID_PROPS} />
@@ -154,7 +154,7 @@ const PlanningKPIs = () => {
       </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <ChartCard title="Defect Pareto — root causes" subtitle={`${scopedDefects.length} planning defects in range; fix the top drivers first`} height={300}>
+        <ChartCard title="Defect Pareto: root causes" subtitle={`${scopedDefects.length} planning defects in range; fix the top drivers first`} height={300}>
           <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
             <BarChart data={paretoRows} layout="vertical" margin={{ left: 10, right: 40 }}>
               <CartesianGrid {...GRID_PROPS} horizontal={false} vertical />

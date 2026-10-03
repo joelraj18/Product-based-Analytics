@@ -22,7 +22,7 @@ const transact = async (mode, work) => {
     work(tx.objectStore(STORE), v => { value = v; });
     tx.oncomplete = () => { db.close(); resolve(value); };
     tx.onerror = () => { db.close(); reject(tx.error); };
-    tx.onabort = () => { db.close(); reject(tx.error || new Error('The browser refused to save (it may be out of storage space).')); };
+    tx.onabort = () => { db.close(); reject(tx.error || new Error('The browser refused to save, it may be out of storage space')); };
   });
 };
 

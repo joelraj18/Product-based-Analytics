@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Database, Table, Play, Download, History, Trash2, Lightbulb, CheckCircle2, Eye, Upload, Link2 } from 'lucide-react';
 import { Card, Button, DataTable, EmptyState, Tabs, Badge, useToast } from '../components/ui';
 import { useWorkspace } from '../state/workspace';
+import { Prose } from '../components/help';
 import usePersistentState from '../hooks/usePersistentState';
 import { columnsOf, downloadCSV } from '../lib/csv';
 import { builtinTables, RELATIONSHIPS, describeTable } from '../lib/sqlTables';
@@ -25,7 +26,7 @@ const Results = ({ results, message }) => {
   return (
     <Card className="flex-1 overflow-hidden flex flex-col min-h-[240px]">
       {message && (
-        <div role="status" className={`px-4 py-2 text-xs border-b font-mono ${message.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-700'}`}>{message.text}</div>
+        <div role="status" className={`px-4 py-2 text-xs border-b font-mono ${message.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-700'}`}><Prose text={message.text} /></div>
       )}
       {results && results.length > 0 ? (
         <>
@@ -43,7 +44,7 @@ const Results = ({ results, message }) => {
         </>
       ) : (
         <EmptyState title={results ? 'Query returned no rows' : 'Run a query to view results'} icon={<Database size={40} className="mb-3 opacity-30" />}>
-          Supports SELECT, WHERE, GROUP BY, HAVING, JOIN, sub-queries, CASE and aggregate functions.
+          Supports SELECT, WHERE, GROUP BY, HAVING, JOIN, subqueries, CASE and aggregate functions
         </EmptyState>
       )}
     </Card>
@@ -111,14 +112,14 @@ const SqlLab = ({ onNavigate }) => {
 
   const runPractice = (check) => {
     const sql = practiceQuery.trim();
-    if (!sql) { setMessage({ ok: false, text: 'Write a query first.' }); return; }
+    if (!sql) { setMessage({ ok: false, text: 'Write a query first' }); return; }
     try {
       const { rows } = execute(sql);
       setResults(rows);
       if (!check) { setMessage({ ok: true, text: `${rows.length} rows` }); return; }
       const expected = execute(exercise.solution).rows;
       if (sameResult(rows, expected, exercise.ordered)) {
-        setMessage({ ok: true, text: `✓ Correct! ${rows.length} rows match the expected answer.` });
+        setMessage({ ok: true, text: `✓ Correct! ${rows.length} rows match the expected answer` });
         if (!solved.includes(exercise.id)) setSolved([...solved, exercise.id]);
       } else {
         const why = rows.length !== expected.length
@@ -126,7 +127,7 @@ const SqlLab = ({ onNavigate }) => {
           : Object.keys(rows[0] || {}).length !== Object.keys(expected[0] || {}).length
             ? `expected ${Object.keys(expected[0] || {}).length} column(s), got ${Object.keys(rows[0] || {}).length}`
             : exercise.ordered ? 'values or their order differ' : 'some values differ';
-        setMessage({ ok: false, text: `Not quite — ${why}. Try the hint.` });
+        setMessage({ ok: false, text: `Not quite, ${why}\nTry the hint` });
       }
     } catch (e) {
       setResults(null);
@@ -145,7 +146,7 @@ const SqlLab = ({ onNavigate }) => {
 
   const TableList = (
     <div className="flex-1 overflow-auto p-3 space-y-3">
-      {[['Built-in tables', builtins], ['Your uploaded tables', uploaded]].map(([group, list]) => (
+      {[['Built in tables', builtins], ['Your uploaded tables', uploaded]].map(([group, list]) => (
         <div key={group}>
           <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{group}</div>
           {Object.keys(list).length === 0 && (
@@ -155,13 +156,13 @@ const SqlLab = ({ onNavigate }) => {
             <details key={name} className="group">
               <summary className="text-xs font-bold text-blue-800 cursor-pointer flex items-center gap-1 list-none">
                 <Table size={12} />
-                <button type="button" className="hover:underline" onClick={(e) => { e.preventDefault(); const q = `SELECT * FROM ${name} LIMIT 100`; if (tab === 'practice') setPracticeQuery(q); else { setTab('query'); setQuery(q); } }}>{name}</button>
+                <button type="button" className="hover:underline" onClick={(e) => { e.preventDefault(); const q = `SELECT * FROM ${name} LIMIT 100`; if (tab === 'practice') setPracticeQuery(q); else { setTab('query'); setQuery(q); } }}><code className="font-mono">{name}</code></button>
                 <span className="text-slate-400 font-normal">({rows.length})</span>
               </summary>
               <div className="pl-3 mt-1 border-l-2 border-slate-100 space-y-0.5">
                 {describeTable(rows).map(col => (
                   <button type="button" key={col.name} onClick={() => insert(col.name)} className="w-full text-xs text-slate-600 hover:text-blue-700 hover:bg-slate-50 px-1 rounded flex justify-between">
-                    <span>{col.name}</span><span className="text-[10px] text-slate-400">{col.type}</span>
+                    <code className="font-mono">{col.name}</code><span className="text-[10px] text-slate-400">{col.type}</span>
                   </button>
                 ))}
               </div>
@@ -210,7 +211,7 @@ const SqlLab = ({ onNavigate }) => {
         <div className="space-y-4">
           <Card className="p-5">
             <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><Link2 size={16} /> How the tables connect</h3>
-            <p className="text-sm text-slate-500 mb-3">Join tables on these columns, e.g. <code className="bg-slate-100 px-1 rounded">FROM capacity_plan c JOIN plan_lines l ON c.line_id = l.id</code>.</p>
+            <p className="text-sm text-slate-500 mb-3">Join tables on these columns, for example <code className="bg-slate-100 px-1 rounded">FROM capacity_plan c JOIN plan_lines l ON c.line_id = l.id</code></p>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               {RELATIONSHIPS.map(([a, b, why]) => (
                 <li key={a + b} className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-slate-50 border">
@@ -268,12 +269,12 @@ const SqlLab = ({ onNavigate }) => {
                   <h3 className="font-bold text-slate-800">{exercise.title}</h3>
                   {solved.includes(exercise.id) && <CheckCircle2 size={16} className="text-emerald-600" aria-label="solved" />}
                 </div>
-                <p className="text-sm text-slate-700">{exercise.prompt}</p>
+                <p className="text-sm text-slate-700"><Prose text={exercise.prompt} /></p>
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Button size="sm" variant="secondary" onClick={() => setShowHint(h => !h)}><Lightbulb size={12} /> {showHint ? 'Hide hint' : 'Hint'}</Button>
                   <Button size="sm" variant="secondary" onClick={() => setShowSolution(s => !s)}><Eye size={12} /> {showSolution ? 'Hide solution' : 'Show solution'}</Button>
                 </div>
-                {showHint && <p className="mt-2 text-sm bg-amber-50 text-amber-900 p-2 rounded-lg">{exercise.hint}</p>}
+                {showHint && <p className="mt-2 text-sm bg-amber-50 text-amber-900 p-2 rounded-lg"><Prose text={exercise.hint} chipClassName="bg-amber-100 text-amber-950" /></p>}
                 {showSolution && <pre className="mt-2 text-xs bg-slate-900 text-blue-100 p-3 rounded-lg whitespace-pre-wrap">{exercise.solution}</pre>}
               </Card>
             )}
@@ -283,7 +284,7 @@ const SqlLab = ({ onNavigate }) => {
               </Editor>
             ) : (
               <Editor query={query} setQuery={setQuery} onRun={runQuery}>
-                {!query.trim() && <Button size="sm" variant="ghost" onClick={() => notify('Pick an example on the left or click a table name.', 'info')}>Need an idea?</Button>}
+                {!query.trim() && <Button size="sm" variant="ghost" onClick={() => notify('Pick an example on the left or click a table name', 'info')}>Need an idea?</Button>}
               </Editor>
             )}
             <Results results={results} message={message} />

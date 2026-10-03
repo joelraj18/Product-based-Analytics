@@ -94,7 +94,7 @@ const IntradayStaffing = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Intraday Staffing Requirements"
-        subtitle="Breaks the weekly forecast into hourly demand by day-of-week and converts it to on-queue agents — Erlang C for real-time queues, workload ÷ occupancy for deferred work."
+        subtitle={'Breaks the weekly forecast into hourly demand by day of week and converts it to agents on queue\nErlang C for real time queues, and workload ÷ occupancy for deferred work'}
         actions={(
           <>
             <LineSelect lines={lines} value={p.line.id} onChange={setLineId} />
@@ -103,20 +103,20 @@ const IntradayStaffing = () => {
         )}
       />
 
-      {!grid ? <Card><EmptyState title="No forecast for this line">Import volume history in Demand Forecast.</EmptyState></Card> : (
+      {!grid ? <Card><EmptyState title="No forecast for this line">Import volume history in Demand Forecast</EmptyState></Card> : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard info="erlang" title="Peak interval" value={`${grid.peak.agents} agents`} sub={`${DOW[grid.peak.d]} ${String(grid.peak.h).padStart(2, '0')}:00 · ${formatNumber(grid.peak.vol)} contacts`} icon={<Clock size={20} className="text-blue-600" />} />
-            <KPICard title="On-queue agent hours" value={formatNumber(grid.agentHours)} sub={`workload ${formatNumber(grid.workload)} hrs`} icon={<Users size={20} className="text-violet-600" />} />
+            <KPICard title="Agent hours on queue" value={formatNumber(grid.agentHours)} sub={`workload ${formatNumber(grid.workload)} hrs`} icon={<Users size={20} className="text-violet-600" />} />
             <KPICard info="occupancy" title="Implied occupancy" value={`${(grid.impliedOcc * 100).toFixed(1)}%`} sub={`plan assumes ${p.line.occupancy}%`} status={<StatusPill status={grid.impliedOcc * 100 + 3 < p.line.occupancy ? 'warning' : 'good'}>{grid.impliedOcc * 100 + 3 < p.line.occupancy ? 'Plan occupancy too high' : 'Consistent'}</StatusPill>} icon={<Gauge size={20} className="text-emerald-600" />} />
-            <KPICard info="serviceLevel" title="Supply vs interval need" value={`${(grid.coverage * 100).toFixed(0)}%`} sub="planned on-queue hrs ÷ required" status={<StatusPill status={grid.coverage >= 1 ? 'good' : grid.coverage >= 0.95 ? 'warning' : 'critical'}>{grid.coverage >= 1 ? 'Covered' : 'Gap'}</StatusPill>} />
+            <KPICard info="serviceLevel" title="Supply vs interval need" value={`${(grid.coverage * 100).toFixed(0)}%`} sub="planned hours on queue ÷ required" status={<StatusPill status={grid.coverage >= 1 ? 'good' : grid.coverage >= 0.95 ? 'warning' : 'critical'}>{grid.coverage >= 1 ? 'Covered' : 'Gap'}</StatusPill>} />
           </div>
 
           <Card className="p-5">
             <div className="flex flex-wrap justify-between items-end gap-2 mb-3">
               <div>
-                <h3 className="font-bold text-slate-800">Required on-queue agents by hour</h3>
-                <p className="text-xs text-slate-500">{p.line.type === 'realtime' ? `Erlang C, ${p.line.slTarget}% answered in ${p.line.slSeconds}s, 60-min intervals` : `Workload ÷ ${p.line.occupancy}% occupancy`} · hover a cell for details</p>
+                <h3 className="font-bold text-slate-800">Required agents on queue by hour</h3>
+                <p className="text-xs text-slate-500">{p.line.type === 'realtime' ? `Erlang C, ${p.line.slTarget}% answered in ${p.line.slSeconds}s, 60 minute intervals` : `Workload ÷ ${p.line.occupancy}% occupancy`} · hover a cell for details</p>
               </div>
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <span>0</span>
@@ -130,7 +130,7 @@ const IntradayStaffing = () => {
                   <tr>
                     <th />
                     {HOURS.map(h => <th key={h} className="text-[10px] font-normal text-slate-400 w-9">{String(h).padStart(2, '0')}</th>)}
-                    <th className="text-[10px] text-slate-500 pl-2 text-right">Agent-hrs</th>
+                    <th className="text-[10px] text-slate-500 pl-2 text-right">Agent hours</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -143,7 +143,7 @@ const IntradayStaffing = () => {
                         return (
                           <td
                             key={h}
-                            title={`${DOW[d]} ${String(h).padStart(2, '0')}:00 — ${formatNumber(c.vol, 0)} contacts → ${c.agents} agents${c.sl !== null ? ` (SL ${(c.sl * 100).toFixed(0)}%)` : ''}`}
+                            title={`${DOW[d]} ${String(h).padStart(2, '0')}:00: ${formatNumber(c.vol, 0)} contacts → ${c.agents} agents${c.sl !== null ? ` (SL ${(c.sl * 100).toFixed(0)}%)` : ''}`}
                             className={`w-9 h-8 text-center text-[10px] rounded ${dark ? 'text-white' : 'text-slate-700'}`}
                             style={{ background: bg }}
                           >
@@ -160,7 +160,7 @@ const IntradayStaffing = () => {
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <ChartCard title="Daily on-queue hours: required vs planned supply" subtitle="Supply spread by day-of-week demand share" height={280}>
+            <ChartCard title="Daily hours on queue: required vs planned supply" subtitle="Supply spread by each day’s share of weekly demand" height={280}>
               <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
                 <BarChart data={grid.daily} barGap={2}>
                   <CartesianGrid {...GRID_PROPS} />

@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Card, PageHeader, Button, Field, Select, TextInput, DataTable, Badge, StatusPill, useToast } from '../components/ui';
 import { useWorkspace } from '../state/workspace';
+import { Prose } from '../components/help';
 import { readTable, gridToTable, inferType, ACCEPT, MAX_BYTES } from '../lib/fileImport';
 import { SCHEMAS, SCHEMA_BY_ID, validate, suggestSchema, templateCSV } from '../lib/schemas';
 import { applyImport, TARGETS } from '../lib/importMerge';
@@ -13,7 +14,7 @@ import { downloadFile, downloadCSV, columnsOf, today } from '../lib/csv';
 import { save } from '../lib/storage';
 import { formatNumber } from '../lib/format';
 
-const TYPE_LABEL = { date: 'date (YYYY-MM-DD)', month: 'month (YYYY-MM)', number: 'number', text: 'text' };
+const TYPE_LABEL = { date: 'date like 2026-01-05', month: 'month like 2026-11', number: 'number', text: 'text' };
 const OPEN_SCREEN = { volume_history: 'forecast', plan_lines: 'capacity', actuals: 'kpis', op_targets: 'budget', events: 'forecast', defects: 'kpis', risks: 'scenarios', orders: 'dashboard' };
 
 const Step = ({ n, title, children }) => (
@@ -28,8 +29,8 @@ const Step = ({ n, title, children }) => (
 const ColumnReference = ({ ws }) => (
   <Card id="column-reference">
     <div className="px-5 py-3 border-b">
-      <h3 className="font-bold text-slate-800">Column reference — exact column names each feature needs</h3>
-      <p className="text-xs text-slate-500 mt-1">Headers are matched ignoring case and spaces (“Line ID” = <code>line_id</code>). Extra columns are allowed. Download a template, fill it in Excel or Google Sheets, and upload it above.</p>
+      <h3 className="font-bold text-slate-800">Column reference: the exact column names each feature needs</h3>
+      <p className="text-xs text-slate-500 mt-1">Headers match ignoring case and spaces, so “Line ID” works for <code>line_id</code><br />Extra columns are allowed<br />Download a template, fill it in with Excel or Google Sheets, and upload it above</p>
     </div>
     <div className="divide-y">
       {SCHEMAS.map(s => {
@@ -42,10 +43,10 @@ const ColumnReference = ({ ws }) => (
                 <span className="font-semibold text-slate-800">{s.label}</span>
                 <span className="ml-2 text-xs text-slate-500">→ {s.usedBy.join(', ')}</span>
               </span>
-              <span className="text-xs font-mono text-slate-600">{s.required.map(c => c.name).join(', ')}</span>
+              <span className="flex flex-wrap gap-1">{s.required.map(c => <code key={c.name} className="font-mono text-xs bg-slate-100 rounded px-1 text-slate-700">{c.name}</code>)}</span>
             </summary>
             <div className="px-5 pb-4 space-y-3">
-              <p className="text-sm text-slate-600">{s.description}</p>
+              <p className="text-sm text-slate-600"><Prose text={s.description} /></p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-xs uppercase text-slate-600">
@@ -57,7 +58,7 @@ const ColumnReference = ({ ws }) => (
                         <td className="px-3 py-1.5 font-mono text-xs">{c.name}</td>
                         <td className="px-3 py-1.5">{c.req ? <Badge type="danger">required</Badge> : <Badge>optional</Badge>}</td>
                         <td className="px-3 py-1.5 text-xs text-slate-600 whitespace-nowrap">{TYPE_LABEL[c.type]}</td>
-                        <td className="px-3 py-1.5 text-slate-700">{c.description}</td>
+                        <td className="px-3 py-1.5 text-slate-700"><Prose text={c.description} /></td>
                         <td className="px-3 py-1.5 font-mono text-xs text-slate-600">{String(c.example)}</td>
                       </tr>
                     ))}
@@ -137,7 +138,7 @@ const UploadCenter = ({ onNavigate }) => {
         uploadedAt: new Date().toISOString(),
       });
       setDone({ kind: 'sql', name: sqlName, rows: table.rows.length });
-      notify(`Saved ${formatNumber(table.rows.length)} rows as SQL table "${sqlName}".`);
+      notify(`Saved ${formatNumber(table.rows.length)} rows as SQL table \`${sqlName}\``);
     } catch (e) {
       notify(`Could not save the table: ${e.message}`, 'error');
     } finally {
@@ -150,7 +151,7 @@ const UploadCenter = ({ onNavigate }) => {
     const mode = modes[dest] || schema.modes[0].id;
     const result = applyImport(ws, dest, mode, check.rows);
     setDone({ kind: 'feature', schemaId: dest, rows: check.rows.length, warnings: result.warnings });
-    notify(`Imported ${formatNumber(check.rows.length)} rows into ${schema.label}.`, result.warnings.length ? 'warning' : 'success');
+    notify(`Imported ${formatNumber(check.rows.length)} rows into ${schema.label}`, result.warnings.length ? 'warning' : 'success');
   };
 
   const openInSql = (name) => {
@@ -167,7 +168,7 @@ const UploadCenter = ({ onNavigate }) => {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Upload Data"
-        subtitle="Bring your own CSV, TSV, JSON or Excel (.xlsx) files. Any file can become a SQL table for practice; planning screens need the exact columns listed in the Column reference."
+        subtitle={'Bring your own CSV, TSV, JSON or Excel files\nAny file can become a SQL table for practice, while planning screens need the exact columns listed in the Column reference'}
         actions={<Button variant="secondary" onClick={() => document.getElementById('column-reference')?.scrollIntoView({ behavior: 'smooth' })}>Column reference</Button>}
       />
 
@@ -185,7 +186,7 @@ const UploadCenter = ({ onNavigate }) => {
         >
           <UploadCloud size={36} className="mx-auto text-blue-600 mb-2" aria-hidden="true" />
           <p className="font-semibold text-slate-700">{busy ? 'Reading file…' : 'Drop a file here, or click to browse'}</p>
-          <p className="text-xs text-slate-500 mt-1">.csv · .tsv · .txt · .json · .xlsx — up to {MAX_BYTES / 1048576} MB. Files never leave your browser.</p>
+          <p className="text-xs text-slate-500 mt-1">CSV · TSV · TXT · JSON · Excel, up to {MAX_BYTES / 1048576} MB<br />Files never leave your browser</p>
           <input ref={inputRef} type="file" accept={ACCEPT} className="hidden" data-testid="upload-input" onChange={e => { const f = e.target.files[0]; e.target.value = ''; loadFile(f); }} />
         </div>
         {error && <div role="alert" className="mt-3 p-3 rounded-lg bg-rose-50 text-rose-800 text-sm flex gap-2"><XCircle size={16} className="mt-0.5 shrink-0" />{error}</div>}
@@ -225,7 +226,7 @@ const UploadCenter = ({ onNavigate }) => {
                 </tbody>
               </table>
             </div>
-            {table.rows.length > 20 && <p className="text-xs text-slate-400 mt-1">Showing the first 20 rows.</p>}
+            {table.rows.length > 20 && <p className="text-xs text-slate-400 mt-1">Showing the first 20 rows</p>}
           </Step>
 
           <Step n={3} title="Choose where it goes">
@@ -235,8 +236,8 @@ const UploadCenter = ({ onNavigate }) => {
                 <label className={`flex gap-3 p-3 rounded-lg border cursor-pointer ${dest === 'sql' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
                   <input type="radio" name="dest" checked={dest === 'sql'} onChange={() => setDest('sql')} className="mt-1" />
                   <span>
-                    <span className="font-semibold text-slate-800 flex items-center gap-1"><Database size={14} /> SQL table — any file</span>
-                    <span className="block text-xs text-slate-500">Query it in SQL Lab, join it with other tables, practise SQL.</span>
+                    <span className="font-semibold text-slate-800 flex items-center gap-1"><Database size={14} /> SQL table from any file</span>
+                    <span className="block text-xs text-slate-500">Query it in SQL Lab, join it with other tables and practise SQL</span>
                   </span>
                 </label>
                 <div className="text-xs font-bold uppercase text-slate-500 pt-2">Or feed a planning feature (exact columns required)</div>
@@ -258,12 +259,12 @@ const UploadCenter = ({ onNavigate }) => {
               <div className="space-y-4">
                 {dest === 'sql' ? (
                   <>
-                    <Field label="Table name" hint="letters, numbers and _ only">
+                    <Field label="Table name" hint="letters, numbers and underscores">
                       <TextInput value={tableName} onChange={setTableName} placeholder="my_table" />
                     </Field>
                     <p className="text-sm text-slate-600">Will be saved as <code className="bg-slate-100 px-1 rounded">{sqlName}</code> with {formatNumber(table.rows.length)} rows and these columns: <span className="font-mono text-xs">{table.columns.join(', ')}</span></p>
-                    {sqlReserved && <div role="alert" className="p-3 rounded-lg bg-rose-50 text-rose-800 text-sm">“{sqlName}” is a built-in table name. Choose another name, e.g. <code>my_{sqlName}</code>.</div>}
-                    {sqlExists && !sqlReserved && <div className="p-3 rounded-lg bg-amber-50 text-amber-900 text-sm flex gap-2"><AlertTriangle size={16} className="shrink-0 mt-0.5" />A table named “{sqlName}” already exists and will be replaced.</div>}
+                    {sqlReserved && <div role="alert" className="p-3 rounded-lg bg-rose-50 text-rose-800 text-sm"><code>{sqlName}</code> is a built in table name<br />Choose another name, such as <code>my_{sqlName}</code></div>}
+                    {sqlExists && !sqlReserved && <div className="p-3 rounded-lg bg-amber-50 text-amber-900 text-sm flex gap-2"><AlertTriangle size={16} className="shrink-0 mt-0.5" />A table named <code>{sqlName}</code> already exists and will be replaced</div>}
                     <Button onClick={importSql} disabled={busy || sqlReserved || !table.rows.length}><Database size={16} /> Save as SQL table</Button>
                   </>
                 ) : (
@@ -278,9 +279,9 @@ const UploadCenter = ({ onNavigate }) => {
                         return (
                           <li key={c.name} className="flex items-start gap-2">
                             {ok ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" aria-label="found" /> : <XCircle size={16} className="text-rose-600 shrink-0 mt-0.5" aria-label="missing" />}
-                            <span><code className="font-semibold">{c.name}</code> <span className="text-slate-500">— {TYPE_LABEL[c.type]}, {c.description}</span>
+                            <span><code className="font-semibold">{c.name}</code> <span className="text-slate-500">: {TYPE_LABEL[c.type]}, <Prose text={c.description} /></span>
                               {ok && check.matched[c.name] !== c.name && <span className="text-xs text-slate-500"> (from your column “{check.matched[c.name]}”)</span>}
-                              {!ok && <span className="block text-xs text-rose-700">Missing — rename one of your columns to “{c.name}” or add it.</span>}
+                              {!ok && <span className="block text-xs text-rose-700">Missing, so rename one of your columns to <code>{c.name}</code> or add it</span>}
                             </span>
                           </li>
                         );
@@ -291,7 +292,7 @@ const UploadCenter = ({ onNavigate }) => {
                     </ul>
                     {check.missing.length === 0 && (check.issues.length > 0 || check.skipped > 0) && (
                       <div className="p-3 rounded-lg bg-amber-50 text-amber-900 text-sm whitespace-pre-line flex gap-2">
-                        <AlertTriangle size={16} className="shrink-0 mt-0.5" />{explainProblems(dest, check)}
+                        <AlertTriangle size={16} className="shrink-0 mt-0.5" /><span><Prose text={explainProblems(dest, check)} /></span>
                       </div>
                     )}
                     <Field label="How to import">
@@ -301,15 +302,15 @@ const UploadCenter = ({ onNavigate }) => {
                       <Button onClick={importFeature} disabled={!check.ok}><Play size={16} /> Import {check.ok ? `${formatNumber(check.rows.length)} rows` : ''}</Button>
                       <Button variant="secondary" onClick={() => downloadFile(templateCSV(schema), `template_${schema.id}.csv`)}><FileDown size={16} /> Template</Button>
                     </div>
-                    {!check.ok && check.missing.length > 0 && <p className="text-xs text-rose-700">Import is disabled until every required column is present.</p>}
+                    {!check.ok && check.missing.length > 0 && <p className="text-xs text-rose-700">Import stays off until every required column is present</p>}
                   </>
                 )}
                 {done && (
                   <div role="status" className="p-3 rounded-lg bg-emerald-50 text-emerald-900 text-sm space-y-2">
                     <div className="flex gap-2"><CheckCircle2 size={16} className="shrink-0 mt-0.5" />
-                      {done.kind === 'sql' ? `Saved ${formatNumber(done.rows)} rows as “${done.name}”.` : `Imported ${formatNumber(done.rows)} rows into ${SCHEMA_BY_ID[done.schemaId].label}.`}
+                      {done.kind === 'sql' ? `Saved ${formatNumber(done.rows)} rows as “${done.name}”` : `Imported ${formatNumber(done.rows)} rows into ${SCHEMA_BY_ID[done.schemaId].label}`}
                     </div>
-                    {done.warnings && done.warnings.map(w => <div key={w} className="text-amber-900">{w}</div>)}
+                    {done.warnings && done.warnings.map(w => <div key={w} className="text-amber-900"><Prose text={w} /></div>)}
                     <Button size="sm" variant="secondary" onClick={() => (done.kind === 'sql' ? openInSql(done.name) : onNavigate(OPEN_SCREEN[done.schemaId]))}>
                       {done.kind === 'sql' ? 'Open in SQL Lab' : `Open ${SCHEMA_BY_ID[done.schemaId].usedBy[0]}`} <ArrowRight size={14} />
                     </Button>
@@ -328,7 +329,7 @@ const UploadCenter = ({ onNavigate }) => {
         </div>
         <DataTable
           rows={tableRows}
-          emptyText="No uploaded tables yet — upload any file above as a SQL table."
+          emptyText="No uploaded tables yet, so upload any file above as a SQL table"
           columns={[
             { key: 'name', label: 'Table', render: r => <code className="font-semibold">{r.name}</code> },
             { key: 'rows', label: 'Rows', align: 'right', format: v => formatNumber(v) },

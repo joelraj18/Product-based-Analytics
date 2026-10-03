@@ -14,13 +14,13 @@ const Settings = () => {
 
   const backup = async () => {
     downloadFile(JSON.stringify(await exportBackupWithTables(), null, 2), `workx_backup_${today()}.json`, 'application/json');
-    notify('Backup downloaded (includes uploaded tables).');
+    notify('Backup downloaded, including uploaded tables');
   };
 
   const restore = async (file) => {
     try {
       const count = await importBackupWithTables(JSON.parse(await readFileText(file)));
-      notify(`Restored ${count} dataset(s). Reloading…`);
+      notify(`Restored ${count} dataset(s), reloading…`);
       setTimeout(() => window.location.reload(), 600);
     } catch (e) {
       notify(`Restore failed: ${e.message}`, 'error');
@@ -28,14 +28,14 @@ const Settings = () => {
   };
 
   const reset = async () => {
-    if (!window.confirm('Reset all workspace data to the demo dataset? Uploaded tables are deleted; your account is kept. Download a backup first if needed.')) return;
+    if (!window.confirm('Reset all workspace data to the demo dataset?\nUploaded tables are deleted and your account is kept\nDownload a backup first if you need one')) return;
     await resetWorkspace();
     window.location.reload();
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-10">
-      <PageHeader title="Settings" subtitle="Preferences, planning defaults and workspace data management." />
+      <PageHeader title="Settings" subtitle="Preferences, planning defaults and workspace data" />
 
       <Card className="p-6 space-y-4">
         <h3 className="text-lg font-bold text-slate-800">Preferences</h3>
@@ -50,9 +50,9 @@ const Settings = () => {
             <Select value={settings.forecastMethod} onChange={v => set({ forecastMethod: v })} options={[{ value: 'auto', label: 'Auto (best backtest)' }, ...Object.entries(METHODS).map(([k, m]) => ({ value: k, label: m.label }))]} />
           </Field>
         </div>
-        <p className="text-xs text-slate-500">Amounts are entered and shown in the selected currency; no conversion is applied.</p>
+        <p className="text-xs text-slate-500">Amounts are entered and shown in the selected currency, with no conversion applied</p>
         <div className="pt-2 border-t">
-          <Button variant="secondary" onClick={() => { setHiresPlan({}); notify('Saved hiring plans cleared; using recommendations.'); }}>
+          <Button variant="secondary" onClick={() => { setHiresPlan({}); notify('Saved hiring plans cleared, using recommendations'); }}>
             <RotateCcw size={16} /> Reset hiring plans to recommendations
           </Button>
         </div>
@@ -61,7 +61,7 @@ const Settings = () => {
       <Card className="p-6">
         <h3 className="text-lg font-bold text-slate-800 mb-2">Workspace data</h3>
         <p className="text-sm text-slate-500 mb-5">
-          All data is stored in this browser’s local storage. Back it up regularly, or move it to another machine by restoring the backup file.
+          All data is stored in this browser’s local storage<br />Back it up regularly, or move it to another machine by restoring the backup file
         </p>
         <div className="flex flex-wrap gap-3">
           <Button variant="dark" onClick={backup}><Save size={16} /> Download backup</Button>
@@ -73,10 +73,10 @@ const Settings = () => {
       <Card className="p-6">
         <h3 className="text-lg font-bold text-slate-800 mb-3">About WorkX</h3>
         <div className="text-sm text-slate-600 space-y-2">
-          <p>WorkX is a browser-based workforce planning and analytics workbench for operations teams at product companies:</p>
+          <p>WorkX is a workforce planning and analytics workbench that runs in your browser, built for operations teams at product companies:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Demand forecasting with backtested accuracy (WAPE, MAPE, bias) and event uplifts</li>
-            <li>Long-term capacity &amp; headcount plans driven by AHT, NPT, shrinkage, occupancy, attrition and ramp</li>
+            <li>Long term capacity &amp; headcount plans driven by AHT, NPT, shrinkage, occupancy, attrition and ramp</li>
             <li>Intraday staffing requirements with Erlang C</li>
             <li>Variable cost budgeting vs OP1/OP2 targets, scenarios, risk register and peak readiness</li>
             <li>Planning KPI reporting, defect Pareto, SQL Lab and data cleaning tools</li>

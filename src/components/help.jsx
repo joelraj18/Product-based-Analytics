@@ -4,6 +4,21 @@ import { GLOSSARY, HELP } from '../content/guide';
 import { SCHEMA_BY_ID } from '../lib/schemas';
 import usePersistentState from '../hooks/usePersistentState';
 
+// Renders guide text: `name` becomes a code chip, a newline becomes a line
+// break (our prose separates sentences with line breaks, not full stops).
+export const Prose = ({ text, chipClassName = 'bg-slate-100 text-slate-800' }) => (
+  <>
+    {String(text ?? '').split('\n').map((line, i, all) => (
+      <React.Fragment key={i}>
+        {line.split(/(`[^`]+`)/).map((part, j) => (part.startsWith('`') && part.endsWith('`') && part.length > 2
+          ? <code key={j} className={`px-1 py-0.5 rounded text-[0.9em] font-mono ${chipClassName}`}>{part.slice(1, -1)}</code>
+          : <React.Fragment key={j}>{part}</React.Fragment>))}
+        {i < all.length - 1 && <br />}
+      </React.Fragment>
+    ))}
+  </>
+);
+
 // ⓘ button with a tooltip. `term` is a GLOSSARY key; `text` overrides it.
 export const InfoTip = ({ term, text, label }) => {
   const [open, setOpen] = useState(false);
@@ -35,7 +50,7 @@ export const InfoTip = ({ term, text, label }) => {
           className="absolute left-1/2 -translate-x-1/2 top-5 w-64 max-w-[80vw] rounded-lg bg-slate-900 text-white text-xs font-normal normal-case tracking-normal leading-relaxed p-3 shadow-xl text-left"
         >
           {g && !text && <span className="block font-semibold mb-1">{g.term}</span>}
-          {body}
+          <Prose text={body} chipClassName="bg-slate-700 text-white" />
         </span>
       )}
     </span>
@@ -61,9 +76,9 @@ export const HelpBox = ({ moduleId, onNavigate }) => {
         </button>
         {open && (
           <div className="px-4 pb-4 text-sm text-slate-700 space-y-2">
-            <p>{help.purpose}</p>
+            <p><Prose text={help.purpose} /></p>
             <ul className="list-disc pl-5 space-y-1">
-              {help.steps.map(s => <li key={s}>{s}</li>)}
+              {help.steps.map(s => <li key={s}><Prose text={s} /></li>)}
             </ul>
             {help.feeds && help.feeds.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 pt-1">

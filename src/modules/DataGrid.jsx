@@ -65,14 +65,14 @@ const DataGrid = () => {
     if (!selected.size) return;
     if (!window.confirm(`Delete ${selected.size} selected row(s)?`)) return;
     onUpdateData(data.filter((_, i) => !selected.has(i)));
-    notify(`Deleted ${selected.size} row(s).`);
+    notify(`Deleted ${selected.size} row(s)`);
     setSelected(new Set());
   };
 
   const addColumn = () => {
     const name = (window.prompt('New column name') || '').trim();
     if (!name) return;
-    if (columns.includes(name)) { notify(`Column '${name}' already exists.`, 'warning'); return; }
+    if (columns.includes(name)) { notify(`Column \`${name}\` already exists`, 'warning'); return; }
     onUpdateData(data.map(r => ({ ...r, [name]: '' })));
   };
 
@@ -101,7 +101,7 @@ const DataGrid = () => {
       </div>
 
       <div className="flex-1 overflow-auto bg-white">
-        {!data.length ? <EmptyState title="No records">Import a CSV to get started.</EmptyState> : (
+        {!data.length ? <EmptyState title="No records">Import a CSV to get started</EmptyState> : (
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-slate-100 sticky top-0 z-10">
               <tr>
@@ -135,7 +135,7 @@ const DataGrid = () => {
                           onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(null); }}
                         />
                       ) : (
-                        <div className="px-2 py-1.5 min-h-[30px] cursor-text" title="Double-click to edit">{String(r[col] ?? '')}</div>
+                        <div className="px-2 py-1.5 min-h-[30px] cursor-text" title="Double click to edit">{String(r[col] ?? '')}</div>
                       )}
                     </td>
                   ))}
@@ -148,7 +148,7 @@ const DataGrid = () => {
 
       <div className="bg-slate-100 border-t p-2 text-xs flex justify-between items-center">
         <span className="font-medium text-slate-500">
-          {view.length === data.length ? `${data.length} records` : `${view.length} of ${data.length} records`} · double-click a cell to edit
+          {view.length === data.length ? `${data.length} records` : `${view.length} of ${data.length} records`} · double click a cell to edit
         </span>
         <div className="flex gap-2 items-center">
           <button type="button" aria-label="Previous page" disabled={safePage === 1} onClick={() => setPage(safePage - 1)} className="p-1 hover:bg-slate-200 rounded disabled:opacity-40"><ChevronLeft size={14} /></button>
