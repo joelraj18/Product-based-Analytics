@@ -87,7 +87,7 @@ const CapacityPlanner = () => {
   const totalCost = p.costs.reduce((s, c) => s + c.total, 0);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
         title="Capacity & Headcount Plan"
         subtitle={'Required FTE = volume × AHT ÷ 3600 ÷ occupancy ÷ (paid hrs × (1 − shrinkage) × (1 − NPT))\nSupply rolls forward with attrition, hiring classes, training and ramp'}

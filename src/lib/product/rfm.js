@@ -57,6 +57,8 @@ export const buildRfm = (orders, { margin = 0.3, lifespanYears = 3 } = {}) => {
   const aov = totalNet / totalOrders;
   const ordersPerYear = totalOrders / list.length / years;
   const clv = aov * ordersPerYear * margin * lifespanYears;
+  const PRIOR_YEARS = 0.5;
+  const paceOf = (c) => (c.orders + ordersPerYear * PRIOR_YEARS) / ((asOf - c.first) / 365 + PRIOR_YEARS);
   const customers = list.map((c, i) => {
     const seg = SEGMENTS.find(s => s.test(R[i], F[i], M[i]));
     return {
@@ -67,8 +69,11 @@ export const buildRfm = (orders, { margin = 0.3, lifespanYears = 3 } = {}) => {
       R: R[i], F: F[i], M: M[i],
       rfm: `${R[i]}${F[i]}${M[i]}`,
       segment: seg.name,
-      // Customer level CLV scales the average by this customer's own pace.
-      clv: Math.round((c.net / c.orders || aov) * (c.orders / Math.max((asOf - c.first) / 365, 1 / 12)) * margin * lifespanYears),
+      // Customer level CLV uses the customer's own order value and pace.
+      // The pace is shrunk toward the average with 6 months of "prior"
+      // history, so a customer whose first order was last week is not
+      // treated as ordering 50 times a year.
+      clv: Math.round((c.net / c.orders || aov) * paceOf(c) * margin * lifespanYears),
     };
   }).sort((a, b) => b.net_spend - a.net_spend);
   const segments = SEGMENTS.map(s => {

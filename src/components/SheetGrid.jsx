@@ -28,7 +28,7 @@ const rawText = (raw) => (raw === undefined || raw === null ? '' : typeof raw ==
 // Spreadsheet grid with a formula bar. The parent owns the Sheet and calls
 // onEdit(row, col, raw) to change a cell; `version` forces a redraw.
 const SheetGrid = ({ sheet, version, onEdit, maxRows = 600, minCols = 12, target, draft, height = '60vh', label = 'Spreadsheet' }) => {
-  const [sel, setSel] = useState(target || { row: 1, col: Math.min(sheet.maxCol + 2, 25) });
+  const [sel, setSel] = useState(target || { row: 1, col: Math.min(sheet.maxCol + 1, 25) });
   const [text, setText] = useState('');
   const barRef = useRef(null);
   const gridRef = useRef(null);
@@ -44,7 +44,11 @@ const SheetGrid = ({ sheet, version, onEdit, maxRows = 600, minCols = 12, target
     setText(draft.text);
     if (barRef.current) barRef.current.focus();
   }, [draft]);
+  // Keep the selected cell in view, but not on first render, so the sheet
+  // opens at column A instead of scrolled to the starting cell.
+  const mounted = useRef(false);
   useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return; }
     const el = gridRef.current && gridRef.current.querySelector(`[data-cell="${sel.row},${sel.col}"]`);
     if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [sel]);

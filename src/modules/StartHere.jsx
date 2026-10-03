@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Compass, TrendingUp, Users, Wallet, ShieldAlert, Activity, Database, UploadCloud, ArrowRight, Search, PlayCircle, BookOpen, HelpCircle,
-} from 'lucide-react';
+  Compass, TrendingUp, Users, Wallet, ShieldAlert, Activity, Database, UploadCloud, ArrowRight, Search, PlayCircle, BookOpen, HelpCircle, LineChart } from 'lucide-react';
 import { Card, Button, TextInput } from '../components/ui';
 import { GLOSSARY } from '../content/guide';
 import { Prose } from '../components/help';
@@ -30,18 +29,19 @@ const StartHere = ({ onNavigate }) => {
   const terms = useMemo(() => Object.values(GLOSSARY).filter(g => `${g.term} ${g.short}`.toLowerCase().includes(q.trim().toLowerCase())), [q]);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-10">
-      <Card className="p-6 md:p-8 bg-gradient-to-br from-slate-900 to-blue-900 text-white border-0">
-        <div className="flex items-center gap-2 text-blue-200 text-sm font-semibold"><Compass size={16} /> Start here</div>
-        <h2 className="text-2xl md:text-3xl font-bold mt-2">Welcome to WorkX</h2>
-        <p className="mt-3 text-blue-100 max-w-3xl leading-relaxed">
-          WorkX helps operations teams answer one question: <b className="text-white">“Will we have the right number of people, at the right time, at the right cost?”</b>{' '}
-          It forecasts work, turns it into staffing and hiring plans, prices them against the budget and tracks how plans perform, with a SQL lab and data tools for practising analytics
+    <div className="space-y-6 pb-10">
+      <Card className="p-8 md:p-12 bg-gradient-to-br from-beige-100 via-beige-200 to-beige-300 border-0 overflow-hidden relative">
+        <div className="flex items-center gap-2 text-beige-700 text-sm font-medium"><Compass size={16} /> Start here</div>
+        <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-slate-900 mt-2">Welcome to WorkX</h2>
+        <p className="mt-4 text-lg text-slate-700 max-w-3xl leading-relaxed">
+          WorkX answers two questions for a product company: <b className="text-slate-900">“Will we have the right number of people, at the right time, at the right cost?”</b> and <b className="text-slate-900">“What is driving growth, and is it working?”</b>{' '}
+          It forecasts work, turns it into staffing and hiring plans, prices them against the budget, and analyses revenue, funnels, retention and experiments, with SQL and Excel labs for practice
         </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Button onClick={() => onNavigate('hub')} className="bg-white !text-slate-900 hover:bg-blue-50"><PlayCircle size={16} /> Explore with demo data</Button>
-          <Button onClick={() => onNavigate('upload')} variant="secondary" className="!bg-transparent !text-white border-white/40 hover:!bg-white/10"><UploadCloud size={16} /> Upload my own files</Button>
-          <Button onClick={() => onNavigate('sql')} variant="secondary" className="!bg-transparent !text-white border-white/40 hover:!bg-white/10"><Database size={16} /> Practise SQL</Button>
+        <div className="mt-7 flex flex-wrap gap-3">
+          <Button onClick={() => onNavigate('hub')}><PlayCircle size={16} /> Explore with demo data</Button>
+          <Button onClick={() => onNavigate('product')} variant="secondary"><LineChart size={16} /> Product analytics</Button>
+          <Button onClick={() => onNavigate('upload')} variant="secondary"><UploadCloud size={16} /> Upload my own files</Button>
+          <Button onClick={() => onNavigate('sql')} variant="secondary"><Database size={16} /> Practise SQL</Button>
         </div>
       </Card>
 

@@ -140,7 +140,7 @@ const Dashboard = ({ onNavigate }) => {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
         title="Sales & Fulfilment Overview"
         subtitle={'Works on any table of orders, so map your columns with the gear icon\nClick a tile, bar or month to see the records behind it'}

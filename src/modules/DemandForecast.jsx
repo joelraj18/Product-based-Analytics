@@ -91,8 +91,9 @@ const DemandForecast = () => {
   const lineName = Object.fromEntries(lines.map(l => [l.id, l.name]));
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
+        hideTitle
         title="Demand Forecast"
         subtitle={'Weekly volume forecast per program or queue\nThe method is chosen by a backtest over the planning horizon, and planned events add uplift on top'}
         actions={(

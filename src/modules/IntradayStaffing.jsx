@@ -91,7 +91,7 @@ const IntradayStaffing = () => {
   if (!p) return <Card><EmptyState title="No plan lines" /></Card>;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
         title="Intraday Staffing Requirements"
         subtitle={'Breaks the weekly forecast into hourly demand by day of week and converts it to agents on queue\nErlang C for real time queues, and workload ÷ occupancy for deferred work'}

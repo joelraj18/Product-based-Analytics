@@ -35,7 +35,7 @@ const Projects = () => {
   const overdue = tasks.filter(t => t.status !== 'Done' && t.due && t.due < now).length;
 
   return (
-    <div className="flex flex-col h-full max-w-7xl mx-auto">
+    <div className="flex flex-col h-full">
       <PageHeader
         title="Planning Workboard"
         subtitle="Track weekly planning deliverables, Finance reconciliations, RCAs and automation work"

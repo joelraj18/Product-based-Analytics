@@ -106,7 +106,7 @@ const ScenarioRisk = () => {
   const lineName = Object.fromEntries(lines.map(l => [l.id, l.name]));
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
         title="Scenarios, Risks & Peak Readiness"
         subtitle="Stress test the current hiring plan against demand and productivity shocks, see which driver moves cost the most, and track mitigations"

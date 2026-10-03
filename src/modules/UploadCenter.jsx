@@ -165,8 +165,9 @@ const UploadCenter = ({ onNavigate }) => {
   }));
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
+        hideTitle
         title="Upload Data"
         subtitle={'Bring your own CSV, TSV, JSON or Excel files\nAny file can become a SQL table for practice, while planning screens need the exact columns listed in the Column reference'}
         actions={<Button variant="secondary" onClick={() => document.getElementById('column-reference')?.scrollIntoView({ behavior: 'smooth' })}>Column reference</Button>}
