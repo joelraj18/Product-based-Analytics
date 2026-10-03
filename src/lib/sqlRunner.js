@@ -22,6 +22,73 @@ export const rewriteMinMax = (sql) => sql
   .map((part, i) => (i % 2 ? part : part.replace(/\b(MIN|MAX)\s*\(/gi, (m, f) => `WX_${f.toUpperCase()}(`)))
   .join('');
 
+// Finds the closing parenthesis for the one at `open`, skipping quoted text.
+const matchParen = (sql, open) => {
+  let depth = 0;
+  for (let i = open; i < sql.length; i++) {
+    const ch = sql[i];
+    if (ch === "'" || ch === '"') {
+      const q = ch;
+      i++;
+      while (i < sql.length && !(sql[i] === q && sql[i + 1] !== q)) i += sql[i] === q ? 2 : 1;
+    } else if (ch === '(') depth++;
+    else if (ch === ')' && --depth === 0) return i;
+  }
+  return -1;
+};
+
+const literal = (v) => {
+  if (v === null || v === undefined) return 'NULL';
+  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : 'NULL';
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  return `'${String(v instanceof Date ? v.toISOString().slice(0, 10) : v).replace(/'/g, "''")}'`;
+};
+
+// alasql re-runs a scalar subquery such as (SELECT AVG(amount) FROM orders)
+// once for every outer row, which takes tens of seconds on 10,000 rows. A
+// subquery that runs on its own (so it does not refer to the outer query) and
+// returns one value is computed once and replaced by that value. Correlated
+// subqueries fail when run alone and are left as written. Only subqueries
+// used as a value (after a comparison or arithmetic operator) are touched,
+// never FROM (SELECT …), IN (SELECT …) or EXISTS (SELECT …).
+export const hoistScalarSubqueries = (sql, run) => {
+  let out = '';
+  let i = 0;
+  while (i < sql.length) {
+    const ch = sql[i];
+    if (ch === "'" || ch === '"') {
+      let end = i + 1;
+      while (end < sql.length && !(sql[end] === ch && sql[end + 1] !== ch)) end += sql[end] === ch ? 2 : 1;
+      out += sql.slice(i, end + 1);
+      i = end + 1;
+      continue;
+    }
+    if (ch === '(' && /^\(\s*SELECT\b/i.test(sql.slice(i, i + 12))) {
+      const close = matchParen(sql, i);
+      if (close < 0) { out += sql.slice(i); break; }
+      const inner = hoistScalarSubqueries(sql.slice(i + 1, close), run);
+      const before = out.trimEnd();
+      const asValue = /(=|<|>|\+|-|\*|\/)$/.test(before);
+      let replaced = null;
+      if (asValue) {
+        try {
+          const res = run(inner);
+          if (Array.isArray(res) && res.length <= 1) {
+            const vals = res.length ? Object.values(res[0]) : [null];
+            if (vals.length === 1) replaced = literal(vals[0]);
+          }
+        } catch { /* correlated or invalid: leave it to the full query */ }
+      }
+      out += replaced !== null ? replaced : `(${inner})`;
+      i = close + 1;
+      continue;
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+};
+
 // Runs SQL against a fresh in-memory database built from `tables` so queries
 // can never change app data. Returns rows (array of objects).
 export const runSql = (sql, tables) => {
@@ -32,7 +99,8 @@ export const runSql = (sql, tables) => {
   });
   let res;
   try {
-    res = db.exec(rewriteMinMax(sql));
+    const ready = hoistScalarSubqueries(rewriteMinMax(sql), (sub) => db.exec(sub));
+    res = db.exec(ready);
   } catch (e) {
     e.message = String(e.message).replace(/WX_(MIN|MAX)/g, '$1');
     throw e;

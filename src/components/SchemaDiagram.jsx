@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { RELATIONSHIPS, describeTable, joinColumns } from '../lib/sqlTables';
 
 const W = 200;          // box width
@@ -123,43 +124,81 @@ const SchemaDiagram = ({ tables, uploaded = {}, maxHeight }) => {
 
 export default SchemaDiagram;
 
-// "Schema reference" button for the SQL editor: hover to peek at the
-// diagram, click to pin it open, Esc or ✕ to close.
+// "Schema reference" button: hover to peek at the diagram, click to pin it
+// open, Esc or ✕ to close. The popover is rendered into document.body with
+// fixed positioning, so no card or scroll area around the button can clip it.
 export const SchemaReferenceButton = ({ tables, uploaded }) => {
   const [open, setOpen] = React.useState(false);
   const [pinned, setPinned] = React.useState(false);
+  const [pos, setPos] = React.useState(null);
+  const btnRef = React.useRef(null);
+  const closeTimer = React.useRef(null);
+
+  const place = React.useCallback(() => {
+    const r = btnRef.current && btnRef.current.getBoundingClientRect();
+    if (!r) return;
+    const width = Math.min(window.innerWidth - 24, 1080);
+    const left = Math.max(12, Math.min(r.right - width, window.innerWidth - width - 12));
+    const below = window.innerHeight - r.bottom - 20;
+    // Open below the button, or above it when there is more room there.
+    const up = below < 320 && r.top > below;
+    setPos({ left, width, top: up ? null : r.bottom + 8, bottom: up ? window.innerHeight - r.top + 8 : null, maxHeight: Math.max(240, (up ? r.top : window.innerHeight - r.bottom) - 24) });
+  }, []);
+
+  const show = () => { clearTimeout(closeTimer.current); place(); setOpen(true); };
+  // A short delay lets the pointer travel from the button into the popover.
+  const hideSoon = () => { if (!pinned) closeTimer.current = setTimeout(() => setOpen(false), 160); };
+  const close = () => { clearTimeout(closeTimer.current); setPinned(false); setOpen(false); };
+
   React.useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); setPinned(false); } };
+    const onKey = (e) => { if (e.key === 'Escape') { setPinned(false); setOpen(false); } };
+    const onMove = () => place();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
-  return (
+    window.addEventListener('resize', onMove);
+    window.addEventListener('scroll', onMove, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onMove);
+      window.removeEventListener('scroll', onMove, true);
+    };
+  }, [open, place]);
+  React.useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  const popover = open && pos && (
     <div
-      className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => { if (!pinned) setOpen(false); }}
+      role="dialog"
+      aria-label="Schema reference"
+      onMouseEnter={() => clearTimeout(closeTimer.current)}
+      onMouseLeave={hideSoon}
+      className="fixed z-[60] bg-white border border-black/10 rounded-2xl shadow-lift p-3 flex flex-col"
+      style={{ left: pos.left, width: pos.width, top: pos.top ?? undefined, bottom: pos.bottom ?? undefined, maxHeight: pos.maxHeight }}
     >
+      <div className="flex items-center justify-between mb-2 shrink-0">
+        <span className="text-xs text-slate-500">🔑 marks join columns · lines show how tables connect · {pinned ? 'pinned, press Esc to close' : 'click the button to pin'}</span>
+        <button type="button" aria-label="Close schema reference" onClick={close} className="text-slate-400 hover:text-slate-700 px-1">✕</button>
+      </div>
+      <div className="min-h-0 overflow-auto">
+        <SchemaDiagram tables={tables} uploaded={uploaded} maxHeight={`${Math.max(200, pos.maxHeight - 60)}px`} />
+      </div>
+    </div>
+  );
+
+  return (
+    <span className="inline-flex" onMouseEnter={show} onMouseLeave={hideSoon}>
       <button
+        ref={btnRef}
         type="button"
         aria-expanded={open}
         aria-haspopup="dialog"
-        onClick={() => { setPinned(p => !p); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        className={`inline-flex items-center gap-1.5 rounded-lg font-semibold px-2.5 py-1 text-xs border transition-colors ${pinned ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}
+        onClick={() => { if (pinned) close(); else { setPinned(true); show(); } }}
+        onFocus={show}
+        className={`inline-flex items-center gap-1.5 rounded-full font-medium px-3 py-1.5 text-xs border transition-colors ${pinned ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-beige-50'}`}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><path d="M10 6.5h4a2 2 0 0 1 2 2V14" /></svg>
         Schema reference
       </button>
-      {open && (
-        <div role="dialog" aria-label="Schema reference" className="absolute right-0 top-full mt-2 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-3 w-[min(92vw,1080px)]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500">🔑 marks join columns · lines show how tables connect · {pinned ? 'pinned, press Esc to close' : 'click the button to pin'}</span>
-            {pinned && <button type="button" aria-label="Close schema reference" onClick={() => { setPinned(false); setOpen(false); }} className="text-slate-400 hover:text-slate-700 px-1">✕</button>}
-          </div>
-          <SchemaDiagram tables={tables} uploaded={uploaded} maxHeight="65vh" />
-        </div>
-      )}
-    </div>
+      {popover && createPortal(popover, document.body)}
+    </span>
   );
 };

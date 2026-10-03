@@ -5,8 +5,14 @@ import { deriveOpTargets, monthlyTotals } from '../lib/opTargets';
 import { idbGetAll, idbSet, idbDelete } from '../lib/idb';
 import {
   seedOrders, seedInventory, seedSites, seedLines, seedVolumeHistory, seedEvents,
-  seedActuals, seedDefects, seedRisks, seedTasks, DEFAULT_SETTINGS,
+  seedActuals, seedDefects, seedRisks, seedTasks, DEFAULT_SETTINGS, ORDERS_SAMPLE_VERSION,
 } from '../data/seed';
+import { load, save } from '../lib/storage';
+
+// The first demo sample had 400 orders with ids ORD-10000 to ORD-10399.
+// Browsers that still hold it untouched get the larger 2024 to 2026 sample;
+// orders a user uploaded or edited are never replaced.
+const isOldDemoOrders = (rows) => Array.isArray(rows) && rows.length === 400 && rows.every(r => /^ORD-10[0-3]\d\d$/.test(String(r && r.id)));
 
 const WorkspaceContext = createContext(null);
 
@@ -17,6 +23,12 @@ export { deriveOpTargets, monthlyTotals };
 export const WorkspaceProvider = ({ children }) => {
   const [settings, setSettings] = usePersistentState('settings', DEFAULT_SETTINGS);
   const [orders, setOrders] = usePersistentState('db_orders', seedOrders);
+  useEffect(() => {
+    if (load('orders_sample_version', 0) >= ORDERS_SAMPLE_VERSION) return;
+    if (isOldDemoOrders(orders)) setOrders(seedOrders());
+    save('orders_sample_version', ORDERS_SAMPLE_VERSION);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [sites, setSites] = usePersistentState('sites', seedSites);
   const [lines, setLines] = usePersistentState('plan_lines', seedLines);
   const [volumeHistory, setVolumeHistory] = usePersistentState('volume_history', () => seedVolumeHistory());

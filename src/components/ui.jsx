@@ -161,6 +161,9 @@ export const Button = ({ variant = 'primary', size = 'md', className = '', child
     danger: 'bg-white border border-rose-200 text-rose-700 hover:bg-rose-50',
     ghost: 'text-blue-600 hover:bg-blue-50',
     dark: 'bg-slate-900 hover:bg-black text-white',
+    // Warm pair for beige surfaces: espresso on cream, no blue.
+    warm: 'bg-beige-900 hover:bg-beige-800 text-beige-50',
+    warmOutline: 'bg-beige-50/70 border border-beige-400 hover:bg-white hover:border-beige-500 text-beige-900',
   }[variant];
   const s = size === 'sm' ? 'px-3 py-1 text-xs' : 'px-5 py-2 text-sm';
   return (

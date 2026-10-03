@@ -361,19 +361,73 @@ const Verdict = ({ ok, children }) => (
   </div>
 );
 
-// Confidence interval drawn against zero, so "does it cross zero" is visible.
-const CiBar = ({ lo, hi, est, fmt }) => {
-  const span = Math.max(Math.abs(lo), Math.abs(hi), Math.abs(est)) * 1.25 || 1;
-  const x = (v) => 50 + (v / span) * 50;
+// Where each arm's true conversion rate probably sits: a normal curve per arm
+// (mean = observed rate, spread = its standard error). Little overlap means
+// the arms really differ.
+const normalPdf = (x, m, sd) => Math.exp(-0.5 * ((x - m) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
+const RateCurves = ({ pA, pB, nA, nB }) => {
+  const sA = Math.sqrt((pA * (1 - pA)) / nA) || 1e-6;
+  const sB = Math.sqrt((pB * (1 - pB)) / nB) || 1e-6;
+  const lo = Math.max(0, Math.min(pA - 4 * sA, pB - 4 * sB));
+  const hi = Math.min(1, Math.max(pA + 4 * sA, pB + 4 * sB));
+  const data = Array.from({ length: 121 }, (_, i) => {
+    const x = lo + ((hi - lo) * i) / 120;
+    return { x, control: normalPdf(x, pA, sA), variant: normalPdf(x, pB, sB) };
+  });
+  const fmt = (v) => `${(v * 100).toFixed(2)}%`;
   return (
-    <div className="mt-2">
-      <div className="relative h-10" role="img" aria-label={`Confidence interval from ${fmt(lo)} to ${fmt(hi)}`}>
-        <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-300" />
-        <div className="absolute top-1 bottom-1 w-px bg-slate-500" style={{ left: `${x(0)}%` }} />
-        <div className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full" style={{ left: `${x(lo)}%`, width: `${x(hi) - x(lo)}%`, background: SERIES[0], opacity: 0.35 }} />
-        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full ring-2 ring-white" style={{ left: `${x(est)}%`, background: SERIES[0] }} />
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+        <h4 className="text-sm font-semibold text-slate-900">Likely range of each conversion rate</h4>
+        <div className="flex items-center gap-3 text-xs text-slate-600">
+          <span className="inline-flex items-center gap-1.5"><span className="w-3 h-0.5 rounded" style={{ background: SERIES[0] }} />Control {fmt(pA)}</span>
+          <span className="inline-flex items-center gap-1.5"><span className="w-3 h-0.5 rounded" style={{ background: SERIES[1] }} />Variant {fmt(pB)}</span>
+        </div>
       </div>
-      <div className="flex justify-between text-[11px] text-slate-500 tabular-nums"><span>{fmt(lo)}</span><span>0</span><span>{fmt(hi)}</span></div>
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
+          <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+            <CartesianGrid {...GRID_PROPS} />
+            <XAxis dataKey="x" type="number" domain={[lo, hi]} tickFormatter={fmt} {...AXIS_PROPS} tickCount={6} />
+            <YAxis hide />
+            <Tooltip {...TOOLTIP_PROPS} labelFormatter={(v) => `Rate ${fmt(v)}`} formatter={(v, name) => [v.toFixed(1), name === 'control' ? 'Control density' : 'Variant density']} />
+            <Area type="monotone" dataKey="control" stroke={SERIES[0]} strokeWidth={2} fill={SERIES[0]} fillOpacity={0.15} isAnimationActive={false} />
+            <Area type="monotone" dataKey="variant" stroke={SERIES[1]} strokeWidth={2} fill={SERIES[1]} fillOpacity={0.15} isAnimationActive={false} />
+            <ReferenceLine x={pA} stroke={SERIES[0]} strokeDasharray="4 3" />
+            <ReferenceLine x={pB} stroke={SERIES[1]} strokeDasharray="4 3" />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="text-xs text-slate-500 mt-1">Each curve is the observed rate ± its sampling error; the less the curves overlap, the stronger the evidence</p>
+    </div>
+  );
+};
+
+// Confidence interval for the difference, drawn against a "no difference"
+// line at zero: if the bar crosses the line, the test is not significant.
+const DiffInterval = ({ lo, hi, est, fmt, significant, title = 'Difference, variant minus control' }) => {
+  const span = Math.max(Math.abs(lo), Math.abs(hi), Math.abs(est)) * 1.3 || 1;
+  const x = (v) => 50 + (v / span) * 50;
+  const color = significant ? '#0ca30c' : '#86837d';
+  const ticks = [-span, -span / 2, 0, span / 2, span];
+  return (
+    <div className="mt-4">
+      <h4 className="text-sm font-semibold text-slate-900">{title} <span className="font-normal text-slate-500">· 95% confidence interval</span></h4>
+      <div className="relative h-24 mt-2" role="img" aria-label={`Estimate ${fmt(est)}, interval from ${fmt(lo)} to ${fmt(hi)}`}>
+        <div className="absolute inset-x-0 top-10 h-px bg-slate-300" />
+        {ticks.map(t => (
+          <div key={t} className="absolute top-9 h-2 w-px bg-slate-300" style={{ left: `${x(t)}%` }} />
+        ))}
+        <div className="absolute top-2 bottom-7 w-0.5 bg-slate-700" style={{ left: `${x(0)}%` }} />
+        <span className="absolute top-0 -translate-x-1/2 text-[11px] font-medium text-slate-700 bg-white px-1" style={{ left: `${x(0)}%` }}>No difference</span>
+        <div className="absolute top-[34px] h-3 rounded-full" style={{ left: `${x(lo)}%`, width: `${Math.max(0.5, x(hi) - x(lo))}%`, background: color, opacity: 0.3 }} />
+        <div className="absolute top-[34px] h-3 w-0.5" style={{ left: `${x(lo)}%`, background: color }} />
+        <div className="absolute top-[34px] h-3 w-0.5" style={{ left: `${x(hi)}%`, background: color }} />
+        <div className="absolute top-[33px] -translate-x-1/2 w-3.5 h-3.5 rounded-full ring-2 ring-white" style={{ left: `${x(est)}%`, background: color }} />
+        <span className="absolute top-[52px] -translate-x-1/2 text-[11px] text-slate-600 whitespace-nowrap" style={{ left: `${Math.min(92, Math.max(8, x(lo)))}%` }}>{fmt(lo)}</span>
+        <span className="absolute top-[52px] -translate-x-1/2 text-[11px] text-slate-600 whitespace-nowrap" style={{ left: `${Math.min(92, Math.max(8, x(hi)))}%` }}>{fmt(hi)}</span>
+        <span className="absolute top-[68px] -translate-x-1/2 text-xs font-semibold whitespace-nowrap" style={{ left: `${Math.min(88, Math.max(12, x(est)))}%`, color }}>estimate {fmt(est)}</span>
+      </div>
     </div>
   );
 };
@@ -415,8 +469,9 @@ const ExperimentView = () => {
                 <div className="rounded-2xl bg-beige-50 p-3"><div className="text-xs text-slate-500">Variant</div><div className="text-lg font-semibold">{pct(r.pB, 2)}</div></div>
                 <div className="rounded-2xl bg-beige-50 p-3"><div className="text-xs text-slate-500">Relative uplift</div><div className="text-lg font-semibold">{r.uplift === null ? '–' : `${r.uplift >= 0 ? '+' : ''}${(r.uplift * 100).toFixed(1)}%`}</div></div>
               </div>
-              <div className="text-sm text-slate-600 tabular-nums">z = {r.z.toFixed(3)} · p value = {r.p < 0.0001 ? '< 0.0001' : r.p.toFixed(4)} · {100 * (1 - ab.alpha)}% CI for the difference</div>
-              <CiBar lo={r.ci[0]} hi={r.ci[1]} est={r.diff} fmt={pp} />
+              <div className="text-sm text-slate-600 tabular-nums">z = {r.z.toFixed(3)} · p value = {r.p < 0.0001 ? '< 0.0001' : r.p.toFixed(4)}</div>
+              <RateCurves pA={r.pA} pB={r.pB} nA={ab.nA} nB={ab.nB} />
+              <DiffInterval lo={r.ci[0]} hi={r.ci[1]} est={r.diff} fmt={(v) => `${v > 0 ? '+' : ''}${pp(v)}`} significant={r.significant} />
               <Verdict ok={r.significant && !srm.mismatch}>
                 {srm.mismatch
                   ? `Do not trust this result yet\nThe split is ${pct(srm.observedA)} control against a planned ${ab.split}%, a sample ratio mismatch (p ${srm.p < 0.0001 ? '< 0.0001' : srm.p.toFixed(4)}), so check assignment and logging first`
@@ -465,6 +520,7 @@ const ExperimentView = () => {
             {w && (
               <>
                 <div className="text-sm text-slate-600 tabular-nums">Difference {w.diff.toFixed(2)} ({w.uplift === null ? 'n/a' : `${(w.uplift * 100).toFixed(1)}%`}){w.t !== null && ` · t = ${w.t.toFixed(3)} · df = ${w.df.toFixed(0)}`} · p value = {w.p < 0.0001 ? '< 0.0001' : w.p.toFixed(4)}</div>
+                <DiffInterval lo={w.ci[0]} hi={w.ci[1]} est={w.diff} fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`} significant={w.significant} title="Difference in means" />
                 <Verdict ok={w.significant}>{w.significant ? 'Significant at 5%' : 'Not significant at 5%\nHeavy tailed metrics like revenue often need more users, capping outliers or a bootstrap'}</Verdict>
               </>
             )}

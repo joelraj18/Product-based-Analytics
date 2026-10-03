@@ -16,7 +16,9 @@ export const detectAnomalies = (series, { window = 8, threshold = 2.5, minHistor
 
 // Weekly totals (Monday start) with empty weeks filled as zero, so a week
 // with no orders shows as a drop instead of disappearing.
-export const weeklyTotals = (orders, valueOf) => {
+// The last week is dropped when the data stops before its Sunday, because a
+// partial week always looks like a drop.
+export const weeklyTotals = (orders, valueOf, { completeOnly = true } = {}) => {
   if (!orders.length) return [];
   const sums = {};
   orders.forEach(o => { const k = isoDate(weekStart(o.date)); sums[k] = (sums[k] || 0) + valueOf(o); });
@@ -26,7 +28,9 @@ export const weeklyTotals = (orders, valueOf) => {
     const k = isoDate(d);
     out.push({ key: k, value: sums[k] || 0 });
   }
-  return out;
+  const lastDate = orders.reduce((m, o) => (o.date > m ? o.date : m), '');
+  const lastIsSunday = new Date(`${lastDate}T00:00:00Z`).getUTCDay() === 0;
+  return completeOnly && !lastIsSunday ? out.slice(0, -1) : out;
 };
 
 export const dailyTotals = (rows, dateKey, valueKey, filter = () => true) => {

@@ -19,7 +19,7 @@ const FLOW = ['Volume history', 'Forecast', 'Required FTE', 'Hiring plan', 'Cost
 const FAQ = [
   ['Where is my data stored?', 'Only in this browser, in its local storage and IndexedDB\nNothing is sent to a server\nUse Settings → Download backup to keep a copy or move it to another computer'],
   ['Can I use my own data?', 'Yes, go to Upload Data\nAny CSV or Excel file can be loaded as a SQL table\nFiles for planning screens need the exact column names shown in the Column reference, so download a template, fill it in and upload it'],
-  ['What is the demo data?', 'A realistic but made up support operation with 4 queues at 3 sites, 3 years of daily volume, weekly actuals, defects and risks\nIt is regenerated the same way every time'],
+  ['What is the demo data?', 'A realistic but made up business: a support operation with 4 queues at 3 sites (3 years of daily volume, weekly actuals, defects and risks) and about 12,000 e commerce orders from January 2024 to December 2026 with growth, festive peaks and sale events\nIt is regenerated the same way every time'],
   ['I broke something, how do I start over?', 'Use Settings → Reset to demo data\nYour login is kept, while uploaded tables and changes are cleared'],
   ['Do I need to know SQL or statistics?', 'No, every screen has a “What am I looking at?” box and ⓘ tips that explain terms in plain English\nSQL Lab has guided practice exercises if you want to learn'],
 ];
@@ -30,18 +30,21 @@ const StartHere = ({ onNavigate }) => {
 
   return (
     <div className="space-y-6 pb-10">
-      <Card className="p-8 md:p-12 bg-gradient-to-br from-beige-100 via-beige-200 to-beige-300 border-0 overflow-hidden relative">
-        <div className="flex items-center gap-2 text-beige-700 text-sm font-medium"><Compass size={16} /> Start here</div>
-        <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-slate-900 mt-2">Welcome to WorkX</h2>
-        <p className="mt-4 text-lg text-slate-700 max-w-3xl leading-relaxed">
-          WorkX answers two questions for a product company: <b className="text-slate-900">“Will we have the right number of people, at the right time, at the right cost?”</b> and <b className="text-slate-900">“What is driving growth, and is it working?”</b>{' '}
+      {/* A deeper sand than the page, with espresso text and cream buttons so
+          every colour in the banner comes from the same warm family. */}
+      <Card className="p-8 md:p-12 bg-gradient-to-br from-[#efe4d3] via-[#e5d5bd] to-[#d6c0a0] border border-beige-300/70 overflow-hidden relative">
+        <div aria-hidden="true" className="absolute -right-24 -top-24 w-80 h-80 rounded-full bg-[#fbf6ee]/40 blur-2xl" />
+        <div className="relative flex items-center gap-2 text-beige-700 text-sm font-medium"><Compass size={16} /> Start here</div>
+        <h2 className="relative text-3xl md:text-5xl font-semibold tracking-tight text-beige-900 mt-2">Welcome to WorkX</h2>
+        <p className="relative mt-4 text-lg text-beige-800 max-w-3xl leading-relaxed">
+          WorkX answers two questions for a product company: <b className="text-beige-900">“Will we have the right number of people, at the right time, at the right cost?”</b> and <b className="text-beige-900">“What is driving growth, and is it working?”</b>{' '}
           It forecasts work, turns it into staffing and hiring plans, prices them against the budget, and analyses revenue, funnels, retention and experiments, with SQL and Excel labs for practice
         </p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Button onClick={() => onNavigate('hub')}><PlayCircle size={16} /> Explore with demo data</Button>
-          <Button onClick={() => onNavigate('product')} variant="secondary"><LineChart size={16} /> Product analytics</Button>
-          <Button onClick={() => onNavigate('upload')} variant="secondary"><UploadCloud size={16} /> Upload my own files</Button>
-          <Button onClick={() => onNavigate('sql')} variant="secondary"><Database size={16} /> Practise SQL</Button>
+        <div className="relative mt-7 flex flex-wrap gap-3">
+          <Button variant="warm" onClick={() => onNavigate('hub')}><PlayCircle size={16} /> Explore with demo data</Button>
+          <Button variant="warmOutline" onClick={() => onNavigate('product')}><LineChart size={16} /> Product analytics</Button>
+          <Button variant="warmOutline" onClick={() => onNavigate('upload')}><UploadCloud size={16} /> Upload my own files</Button>
+          <Button variant="warmOutline" onClick={() => onNavigate('sql')}><Database size={16} /> Practise SQL</Button>
         </div>
       </Card>
 
@@ -51,8 +54,8 @@ const StartHere = ({ onNavigate }) => {
         <div className="flex flex-wrap items-center gap-2" role="list" aria-label="Planning flow">
           {FLOW.map((f, i) => (
             <React.Fragment key={f}>
-              <span role="listitem" className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm font-semibold text-slate-700 shadow-sm">{f}</span>
-              {i < FLOW.length - 1 && <ArrowRight size={16} className="text-slate-400" aria-hidden="true" />}
+              <span role="listitem" className="px-3.5 py-2 rounded-full bg-beige-100 border border-beige-200 text-sm font-medium text-beige-900">{f}</span>
+              {i < FLOW.length - 1 && <ArrowRight size={16} className="text-beige-500" aria-hidden="true" />}
             </React.Fragment>
           ))}
           <span className="text-sm text-slate-500 ml-2">… then <b>Actuals</b> → <b>KPIs</b> show how it went</span>
@@ -64,10 +67,10 @@ const StartHere = ({ onNavigate }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {STEPS.map((s, i) => (
             <Card key={s.id} className="p-4 flex flex-col">
-              <div className="flex items-center gap-2 text-blue-700 font-bold text-sm"><span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs">{i + 1}</span><s.icon size={16} /></div>
+              <div className="flex items-center gap-2 text-beige-700 font-semibold text-sm"><span className="w-6 h-6 rounded-full bg-beige-200 text-beige-900 flex items-center justify-center text-xs">{i + 1}</span><s.icon size={16} /></div>
               <div className="font-semibold text-slate-800 mt-2">{s.title}</div>
               <p className="text-sm text-slate-600 mt-1 flex-1"><Prose text={s.text} /></p>
-              <Button size="sm" variant="secondary" className="mt-3 self-start" onClick={() => onNavigate(s.id)}>Open <ArrowRight size={12} /></Button>
+              <Button size="sm" variant="warmOutline" className="mt-3 self-start" onClick={() => onNavigate(s.id)}>Open <ArrowRight size={12} /></Button>
             </Card>
           ))}
         </div>
@@ -82,13 +85,13 @@ const StartHere = ({ onNavigate }) => {
         </ol>
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           {SCHEMAS.map(s => (
-            <div key={s.id} className="p-2 rounded-lg bg-slate-50 border">
+            <div key={s.id} className="p-3 rounded-xl bg-beige-50 border border-beige-200">
               <div className="font-semibold text-slate-800">{s.label}</div>
               <div className="flex flex-wrap gap-1 mt-1">{s.required.map(c => <code key={c.name} className="font-mono text-xs bg-white border border-slate-200 rounded px-1 text-slate-700">{c.name}</code>)}</div>
             </div>
           ))}
         </div>
-        <Button className="mt-4" onClick={() => onNavigate('upload')}>Go to Upload Data <ArrowRight size={14} /></Button>
+        <Button variant="warm" className="mt-4" onClick={() => onNavigate('upload')}>Go to Upload Data <ArrowRight size={14} /></Button>
       </Card>
 
       <Card className="p-5">
@@ -101,7 +104,7 @@ const StartHere = ({ onNavigate }) => {
         </div>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {terms.map(g => (
-            <div key={g.term} className="p-3 rounded-lg border border-slate-200">
+            <div key={g.term} className="p-3 rounded-xl border border-beige-200 bg-beige-50/50">
               <dt className="font-semibold text-slate-800">{g.term}</dt>
               <dd className="text-sm text-slate-600 mt-1"><Prose text={g.short} /></dd>
             </div>

@@ -52,11 +52,11 @@ const Results = ({ results, message }) => {
   );
 };
 
-const Editor = ({ query, setQuery, onRun, children, tables, uploaded }) => (
+const Editor = ({ query, setQuery, onRun, children }) => (
   <Card className="flex flex-col h-56 lg:h-64 overflow-hidden">
     <div className="p-2 bg-slate-50 border-b flex flex-wrap justify-between items-center gap-2">
       <span className="text-xs font-bold text-slate-500 uppercase px-1">SQL editor <span className="normal-case font-normal text-slate-400">· Ctrl/⌘ + Enter to run</span></span>
-      <div className="flex flex-wrap gap-2">{tables && <SchemaReferenceButton tables={tables} uploaded={uploaded} />}{children}<Button size="sm" onClick={onRun}><Play size={14} /> Run query</Button></div>
+      <div className="flex flex-wrap gap-2">{children}<Button size="sm" onClick={onRun}><Play size={14} /> Run query</Button></div>
     </div>
     <textarea
       aria-label="SQL query"
@@ -214,7 +214,11 @@ const SqlLab = ({ onNavigate }) => {
           onChange={(t) => { setTab(t); setResults(null); setMessage(null); }}
           tabs={[{ value: 'query', label: 'Query' }, { value: 'practice', label: `Practice (${solvedSet.size}/${PRACTICE.length})` }, { value: 'schema', label: 'Schema' }]}
         />
-        <span className="text-xs text-slate-500">{Object.keys(tables).length} tables · queries run on a copy, so your data is never changed</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs text-slate-500">{Object.keys(tables).length} tables · queries run on a copy, so your data is never changed</span>
+          {/* Outside the editor card, so the diagram is never cut off. */}
+          {tab !== 'schema' && <SchemaReferenceButton tables={tables} uploaded={uploaded} />}
+        </div>
       </div>
 
       {tab === 'schema' ? (
@@ -301,11 +305,11 @@ const SqlLab = ({ onNavigate }) => {
               </Card>
             )}
             {tab === 'practice' ? (
-              <Editor query={practiceQuery} setQuery={setPracticeQuery} onRun={() => runPractice(false)} tables={tables} uploaded={uploaded}>
+              <Editor query={practiceQuery} setQuery={setPracticeQuery} onRun={() => runPractice(false)}>
                 <Button size="sm" variant="success" onClick={() => runPractice(true)}><CheckCircle2 size={14} /> Check my answer</Button>
               </Editor>
             ) : (
-              <Editor query={query} setQuery={setQuery} onRun={runQuery} tables={tables} uploaded={uploaded}>
+              <Editor query={query} setQuery={setQuery} onRun={runQuery}>
                 {!query.trim() && <Button size="sm" variant="ghost" onClick={() => notify('Pick an example on the left or click a table name', 'info')}>Need an idea?</Button>}
               </Editor>
             )}
