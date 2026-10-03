@@ -81,7 +81,7 @@ const DataCleaning = () => {
     if (!undoStack.length) return;
     setOrders(undoStack[undoStack.length - 1]);
     setUndoStack(s => s.slice(0, -1));
-    notify('Reverted last operation.', 'info');
+    notify('Reverted the last operation', 'info');
   };
 
   // ---- operations ----
@@ -96,13 +96,13 @@ const DataCleaning = () => {
       });
       return out;
     });
-    apply(next, `Trimmed whitespace in ${changed} cell(s).`);
+    apply(next, `Trimmed whitespace in ${changed} cell(s)`);
   };
 
   const imputeNumeric = (method) => {
     if (!nc) return;
     const vals = numericValues(data, nc);
-    if (!vals.length) { notify(`No numeric values in '${nc}'.`, 'warning'); return; }
+    if (!vals.length) { notify(`No numeric values in \`${nc}\``, 'warning'); return; }
     const fill = method === 'mean' ? Number(mean(vals).toFixed(2)) : method === 'median' ? median(vals) : 0;
     let filled = 0;
     let cleaned = 0;
@@ -112,12 +112,12 @@ const DataCleaning = () => {
       if (n !== row[nc]) cleaned++;
       return { ...row, [nc]: n };
     });
-    apply(next, `'${nc}': converted ${cleaned} formatted value(s) to numbers, filled ${filled} missing/invalid with ${method} (${fill}).`);
+    apply(next, `\`${nc}\`: converted ${cleaned} formatted value(s) to numbers\nFilled ${filled} missing or invalid value(s) with the ${method} (${fill})`);
   };
 
   const checkSkew = () => {
     const vals = numericValues(data, nc);
-    if (vals.length < 3) { setSkewResult('Not enough numeric data.'); return; }
+    if (vals.length < 3) { setSkewResult('Not enough numeric data'); return; }
     const sk = skewness(vals);
     const { lower, upper } = iqrFences(vals);
     const outliers = vals.filter(v => v < lower || v > upper).length;
@@ -126,7 +126,7 @@ const DataCleaning = () => {
 
   const capOutliers = () => {
     const vals = numericValues(data, nc);
-    if (vals.length < 4) { notify('Not enough numeric data.', 'warning'); return; }
+    if (vals.length < 4) { notify('Not enough numeric data', 'warning'); return; }
     const { lower, upper } = iqrFences(vals);
     let capped = 0;
     const next = data.map(row => {
@@ -136,33 +136,33 @@ const DataCleaning = () => {
       if (c !== n) capped++;
       return { ...row, [nc]: Number(c.toFixed(2)) };
     });
-    apply(next, `Capped ${capped} outlier(s) in '${nc}' to the IQR fences.`);
+    apply(next, `Capped ${capped} outlier(s) in \`${nc}\` to the IQR fences`);
   };
 
   const fillCategorical = (method) => {
     if (!cc) return;
     const present = data.map(r => r[cc]).filter(v => !isMissing(v));
     const fill = method === 'mode' ? mode(present.map(String)) : catFill.trim();
-    if (!fill) { notify(method === 'mode' ? 'Column is entirely empty.' : 'Enter a fill value.', 'warning'); return; }
+    if (!fill) { notify(method === 'mode' ? 'This column is entirely empty' : 'Enter a fill value', 'warning'); return; }
     let filled = 0;
     const next = data.map(row => (isMissing(row[cc]) ? (filled++, { ...row, [cc]: fill }) : row));
-    apply(next, `Filled ${filled} empty '${cc}' cell(s) with '${fill}'.`);
+    apply(next, `Filled ${filled} empty \`${cc}\` cell(s) with “${fill}”`);
   };
 
   const generateCategory = () => {
     const opts = genValues.split(',').map(s => s.trim()).filter(Boolean);
     const target = cc || 'status';
-    if (!opts.length) { notify('Enter at least one value.', 'warning'); return; }
-    if (!window.confirm(`Overwrite every value in '${target}' with random picks from: ${opts.join(', ')}? Use only for test data.`)) return;
-    apply(data.map(row => ({ ...row, [target]: opts[Math.floor(Math.random() * opts.length)] })), `Generated random '${target}' values.`);
+    if (!opts.length) { notify('Enter at least one value', 'warning'); return; }
+    if (!window.confirm(`Overwrite every value in “${target}” with random picks from: ${opts.join(', ')}?\nUse this only for test data`)) return;
+    apply(data.map(row => ({ ...row, [target]: opts[Math.floor(Math.random() * opts.length)] })), `Generated random \`${target}\` values`);
   };
 
   const fillDates = () => {
     const col = dc.trim();
-    if (!col) { notify('Choose or type a date column.', 'warning'); return; }
+    if (!col) { notify('Choose or type a date column', 'warning'); return; }
     const a = parseDate(startDate);
     const b = parseDate(endDate);
-    if (!a || !b) { notify('Pick a valid date range.', 'warning'); return; }
+    if (!a || !b) { notify('Pick a valid date range', 'warning'); return; }
     const min = Math.min(a.getTime(), b.getTime());
     const max = Math.max(a.getTime(), b.getTime());
     let filled = 0;
@@ -171,12 +171,12 @@ const DataCleaning = () => {
       filled++;
       return { ...row, [col]: isoDate(new Date(min + Math.random() * (max - min))) };
     });
-    apply(next, `Filled ${filled} missing date(s) in '${col}'.`);
+    apply(next, `Filled ${filled} missing date(s) in \`${col}\``);
   };
 
   const normalizeDates = () => {
     const col = dc.trim();
-    if (!columns.includes(col)) { notify('Choose an existing date column.', 'warning'); return; }
+    if (!columns.includes(col)) { notify('Choose an existing date column', 'warning'); return; }
     let fixed = 0;
     let bad = 0;
     const next = data.map(row => {
@@ -187,7 +187,7 @@ const DataCleaning = () => {
       if (iso !== row[col]) fixed++;
       return { ...row, [col]: iso };
     });
-    apply(next, `Normalized ${fixed} date(s) in '${col}' to YYYY-MM-DD.${bad ? ` ${bad} unparseable value(s) left as-is.` : ''}`);
+    apply(next, `Normalized ${fixed} date(s) in \`${col}\` to year month day format${bad ? `\n${bad} value(s) could not be read and were left unchanged` : ''}`);
   };
 
   const dedupe = () => {
@@ -198,20 +198,20 @@ const DataCleaning = () => {
       seen.add(key);
       return true;
     });
-    apply(next, `Removed ${data.length - next.length} duplicate row(s)${dedupeCol ? ` by '${dedupeCol}'` : ''}.`);
+    apply(next, `Removed ${data.length - next.length} duplicate row(s)${dedupeCol ? ` by \`${dedupeCol}\`` : ''}`);
   };
 
   const changeCase = () => {
     const col = caseCol || cc;
     if (!col) return;
     const fn = caseMode === 'upper' ? s => s.toUpperCase() : caseMode === 'lower' ? s => s.toLowerCase() : toTitle;
-    apply(data.map(row => (typeof row[col] === 'string' ? { ...row, [col]: fn(row[col]) } : row)), `Standardized case in '${col}'.`);
+    apply(data.map(row => (typeof row[col] === 'string' ? { ...row, [col]: fn(row[col]) } : row)), `Standardized case in \`${col}\``);
   };
 
   const rename = () => {
     const to = renameTo.trim();
-    if (!renameFrom || !to) { notify('Pick a column and a new name.', 'warning'); return; }
-    if (columns.includes(to)) { notify(`'${to}' already exists.`, 'warning'); return; }
+    if (!renameFrom || !to) { notify('Pick a column and a new name', 'warning'); return; }
+    if (columns.includes(to)) { notify(`\`${to}\` already exists`, 'warning'); return; }
     apply(data.map(row => {
       const out = {};
       Object.entries(row).forEach(([k, v]) => { out[k === renameFrom ? to : k] = v; });
@@ -223,7 +223,7 @@ const DataCleaning = () => {
   const drop = () => {
     if (!dropCol) return;
     if (!window.confirm(`Delete the '${dropCol}' column from all ${data.length} rows?`)) return;
-    apply(data.map(row => { const { [dropCol]: _, ...rest } = row; return rest; }), `Removed column '${dropCol}'.`);
+    apply(data.map(row => { const { [dropCol]: _, ...rest } = row; return rest; }), `Removed column \`${dropCol}\``);
     setDropCol('');
   };
 
@@ -231,12 +231,12 @@ const DataCleaning = () => {
     <div className="space-y-6 max-w-6xl mx-auto pb-10">
       <PageHeader
         title="Data Cleaning & Profiling"
-        subtitle="Profile the orders dataset and fix quality issues before analysis. Every operation can be undone (last 5)."
+        subtitle="Profile the orders dataset and fix quality issues before analysis, and undo any of the last 5 operations"
         actions={<Button variant="secondary" onClick={undo} disabled={!undoStack.length}><Undo2 size={16} /> Undo ({undoStack.length})</Button>}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KPICard title="Data health" value={`${health}%`} sub="non-missing cells" icon={<Sparkles size={20} className="text-emerald-600" />} />
+        <KPICard title="Data health" value={`${health}%`} sub="cells with a value" icon={<Sparkles size={20} className="text-emerald-600" />} />
         <KPICard title="Rows" value={formatNumber(data.length)} sub={`${columns.length} columns`} icon={<Rows3 size={20} className="text-blue-600" />} />
         <KPICard title="Missing cells" value={formatNumber(missingCells)} sub={`${profile.filter(p => p.missing).length} column(s) affected`} icon={<BarChart3 size={20} className="text-amber-600" />} />
       </div>
@@ -251,7 +251,7 @@ const DataCleaning = () => {
             { key: 'type', label: 'Type' },
             { key: 'missing', label: 'Missing', align: 'right' },
             { key: 'missing_pct', label: 'Missing %', align: 'right', format: v => `${v.toFixed(1)}%` },
-            { key: 'non_numeric', label: 'Non-numeric', align: 'right' },
+            { key: 'non_numeric', label: 'Not numeric', align: 'right' },
             { key: 'unique', label: 'Unique', align: 'right' },
             { key: 'min', label: 'Min', align: 'right', format: v => (v === '' ? '' : formatNumber(v, 2)) },
             { key: 'max', label: 'Max', align: 'right', format: v => (v === '' ? '' : formatNumber(v, 2)) },
@@ -268,7 +268,7 @@ const DataCleaning = () => {
             <Button size="sm" variant="secondary" onClick={() => imputeNumeric('median')}>Fill with median</Button>
             <Button size="sm" variant="secondary" onClick={() => imputeNumeric('zero')}>Fill with 0</Button>
           </div>
-          <p className="text-xs text-slate-500">Strips currency symbols and thousands separators (e.g. “₹1,299” → 1299); zero is treated as a real value.</p>
+          <p className="text-xs text-slate-500">Strips currency symbols and thousands separators, so “₹1,299” becomes 1299, and treats zero as a real value</p>
           <div className="grid grid-cols-2 gap-2 pt-2 border-t">
             <Button size="sm" variant="secondary" onClick={checkSkew}><BarChart3 size={14} /> Check distribution</Button>
             <Button size="sm" variant="secondary" onClick={capOutliers}><Scissors size={14} /> Cap outliers (IQR)</Button>
@@ -305,7 +305,7 @@ const DataCleaning = () => {
             <TextInput value={dc} onChange={setDateCol} placeholder="e.g. delivery_date" list="date-cols" />
             <datalist id="date-cols">{columns.map(c => <option key={c} value={c} />)}</datalist>
           </Field>
-          <Button size="sm" variant="secondary" onClick={normalizeDates} className="w-full">Normalize to YYYY-MM-DD</Button>
+          <Button size="sm" variant="secondary" onClick={normalizeDates} className="w-full">Normalize to year month day</Button>
           <div className="grid grid-cols-2 gap-2 pt-2 border-t">
             <input type="date" aria-label="Start date" className="p-2 border border-slate-300 rounded-lg text-sm" value={startDate} onChange={e => setStartDate(e.target.value)} />
             <input type="date" aria-label="End date" className="p-2 border border-slate-300 rounded-lg text-sm" value={endDate} onChange={e => setEndDate(e.target.value)} />

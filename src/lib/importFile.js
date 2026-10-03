@@ -22,11 +22,11 @@ export const explainProblems = (schemaId, v) => {
   const schema = SCHEMA_BY_ID[schemaId];
   const parts = [];
   if (v.missing.length) {
-    parts.push(`Missing required column${v.missing.length > 1 ? 's' : ''}: ${v.missing.join(', ')}.`);
-    parts.push(`"${schema.label}" files need these exact column names: ${schema.required.map(c => c.name).join(', ')}.`);
-    if (v.columns && v.columns.length) parts.push(`Your file has: ${v.columns.slice(0, 12).join(', ')}${v.columns.length > 12 ? '…' : ''}.`);
+    parts.push(`Missing required column${v.missing.length > 1 ? 's' : ''}: ${v.missing.map(m => `\`${m}\``).join(', ')}`);
+    parts.push(`${schema.label} files need these exact column names: ${schema.required.map(c => `\`${c.name}\``).join(', ')}`);
+    if (v.columns && v.columns.length) parts.push(`Your file has: ${v.columns.slice(0, 12).map(c => `\`${c}\``).join(', ')}${v.columns.length > 12 ? '…' : ''}`);
   }
-  v.issues.forEach(i => parts.push(`${i.count} row(s) with ${i.kind} "${i.column}" (e.g. row ${i.rows.join(', ')}).`));
-  if (v.skipped) parts.push(`${v.skipped} row(s) skipped because a required value was missing or invalid.`);
+  v.issues.forEach(i => parts.push(`${i.count} row(s) with ${i.kind} \`${i.column}\`, for example row ${i.rows.join(', ')}`));
+  if (v.skipped) parts.push(`${v.skipped} row(s) skipped because a required value was missing or invalid`);
   return parts.join('\n');
 };

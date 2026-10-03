@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Users, UserPlus, Wallet, ShieldAlert, Download, TrendingUp } from 'lucide-react';
 import { Card, KPICard, ChartCard, DataTable, StatusPill, PageHeader, Button, useToast } from '../components/ui';
 import { useWorkspace, monthlyTotals } from '../state/workspace';
+import { Prose } from '../components/help';
 import { planToRows, peakWeeks } from '../lib/planEngine';
 import { lineStatus, planInsights } from '../lib/planHealth';
 import { downloadCSV, today } from '../lib/csv';
@@ -49,7 +50,7 @@ const PlanningHub = ({ onNavigate }) => {
     const lastHist = Object.values(plan.series).map(x => x.weeks[x.weeks.length - 1]).filter(Boolean).sort().pop();
     const thisWeek = weekStart(new Date());
     if (lastHist && (parseDate(thisWeek) - parseDate(lastHist)) / 86400000 > 14) {
-      list.unshift({ status: 'warning', text: `Volume history ends week of ${lastHist}. Import the latest actuals in Demand Forecast so the plan starts from this week.` });
+      list.unshift({ status: 'warning', text: `Volume history ends the week of ${lastHist}\nImport the latest actuals in Demand Forecast so the plan starts from this week` });
     }
     return list;
   }, [plans, plan.series, currency]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -76,16 +77,16 @@ const PlanningHub = ({ onNavigate }) => {
 
   const exportPack = () => {
     downloadCSV(planToRows(plans), `weekly_headcount_plan_${today()}.csv`);
-    notify('Weekly headcount plan exported (all lines × weeks).');
+    notify('Weekly headcount plan exported for all lines and weeks');
   };
 
-  if (!stats) return <Card className="p-8 text-slate-500">No plan available — load volume history in Demand Forecast.</Card>;
+  if (!stats) return <Card className="p-8 text-slate-500">No plan available yet, so load volume history in Demand Forecast</Card>;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Planning Hub"
-        subtitle="Readiness across every program and site: demand, required vs planned headcount, hiring, variable cost vs OP and open risks."
+        subtitle="Readiness across every program and site: demand, required vs planned headcount, hiring, variable cost vs OP and open risks"
         actions={<Button variant="success" onClick={exportPack}><Download size={16} /> Export weekly plan</Button>}
       />
 
@@ -126,7 +127,7 @@ const PlanningHub = ({ onNavigate }) => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <ChartCard title="Required vs effective FTE — all lines" subtitle="Dashed verticals mark the top-4 peak demand weeks" className="xl:col-span-2" height={300}>
+        <ChartCard title="Required vs effective FTE for all lines" subtitle="Dashed verticals mark the top 4 peak demand weeks" className="xl:col-span-2" height={300}>
           <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
             <LineChart data={totals} margin={{ right: 12 }}>
               <CartesianGrid {...GRID_PROPS} />
@@ -145,11 +146,11 @@ const PlanningHub = ({ onNavigate }) => {
         <Card className="p-5 flex flex-col">
           <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><TrendingUp size={16} /> Actions &amp; insights</h3>
           <div className="space-y-2 overflow-auto max-h-[300px] pr-1">
-            {insights.length === 0 && <p className="text-sm text-slate-500">All lines are covered without overtime. 🎯</p>}
+            {insights.length === 0 && <p className="text-sm text-slate-500">All lines are covered without overtime 🎯</p>}
             {insights.map((i, k) => (
               <div key={k} className="text-sm text-slate-700 flex gap-2 items-start">
                 <span className="shrink-0 mt-0.5"><StatusPill status={i.status}>{i.status === 'critical' ? 'Act' : i.status === 'warning' ? 'Watch' : 'Plan'}</StatusPill></span>
-                <span>{i.text}</span>
+                <span><Prose text={i.text} /></span>
               </div>
             ))}
           </div>

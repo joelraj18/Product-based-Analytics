@@ -18,7 +18,7 @@ describe('file parsing', () => {
     expect(parseTextTable('a;b\n1;2', 'txt')).toEqual([['a', 'b'], ['1', '2']]);
     const grid = parseJsonTable('[{"a":1,"b":"x"},{"a":2,"c":true}]');
     expect(gridToTable(grid, 0).columns).toEqual(['a', 'b', 'c']);
-    expect(() => parseJsonTable('{"a":1}')).toThrow(/array of objects/);
+    expect(() => parseJsonTable('{"a":1}')).toThrow(/list of objects/);
   });
   test('duplicate and blank headers get unique names', () => {
     expect(gridToTable([['x', 'x', ''], [1, 2, 3]], 0).columns).toEqual(['x', 'x_2', 'column_3']);

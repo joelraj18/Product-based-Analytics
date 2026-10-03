@@ -38,7 +38,7 @@ const Projects = () => {
     <div className="flex flex-col h-full max-w-7xl mx-auto">
       <PageHeader
         title="Planning Workboard"
-        subtitle="Track weekly planning deliverables, Finance reconciliations, RCAs and automation work."
+        subtitle="Track weekly planning deliverables, Finance reconciliations, RCAs and automation work"
         actions={(
           <>
             {overdue > 0 && <StatusPill status="critical">{overdue} overdue</StatusPill>}
@@ -52,7 +52,7 @@ const Projects = () => {
         <Card className="mb-6 p-4 bg-blue-50/50 border-blue-200">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
             <Field label="Task" className="md:col-span-2">
-              <TextInput value={form.content} onChange={v => setForm({ ...form, content: v })} placeholder="e.g. Refresh weekly HC plan" onKeyDown={e => e.key === 'Enter' && save()} autoFocus />
+              <TextInput value={form.content} onChange={v => setForm({ ...form, content: v })} placeholder="Like Refresh weekly HC plan" onKeyDown={e => e.key === 'Enter' && save()} autoFocus />
             </Field>
             <Field label="Tag"><Select value={form.tag} onChange={v => setForm({ ...form, tag: v })} options={TAGS} /></Field>
             <Field label="Priority"><Select value={form.priority} onChange={v => setForm({ ...form, priority: v })} options={PRIORITIES} /></Field>

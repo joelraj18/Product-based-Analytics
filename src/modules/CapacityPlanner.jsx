@@ -17,7 +17,7 @@ const ASSUMPTIONS = [
   ] },
   { group: 'Supply', fields: [
     ['currentHC', 'Current HC', 'FTE', 1], ['attritionMonthly', 'Attrition', '%/mo', 0.1], ['trainingWeeks', 'Training', 'wks', 1], ['rampWeeks', 'Ramp / nesting', 'wks', 1],
-    ['rampStart', 'Ramp start prod.', '%', 5], ['tempContractWeeks', 'Temp stay after ramp', 'wks', 1], ['maxOtPct', 'Max OT', '% hrs', 1], ['bufferPct', 'Plan buffer', '%', 0.5],
+    ['rampStart', 'Ramp start productivity', '%', 5], ['tempContractWeeks', 'Temp stay after ramp', 'wks', 1], ['maxOtPct', 'Max OT', '% hrs', 1], ['bufferPct', 'Plan buffer', '%', 0.5],
   ] },
   { group: 'Cost & service', fields: [
     ['costPerHour', 'Loaded cost / hr', '', 1], ['costPerUnit', 'Vendor cost / unit', '', 0.5], ['otMultiplier', 'OT multiplier', '×', 0.05], ['hireCost', 'Cost per hire', '', 100],
@@ -43,7 +43,7 @@ const CapacityPlanner = () => {
   })) : []), [p]);
 
   if (!p || !line) {
-    return <Card><EmptyState title="No plan lines">Add a plan line to start capacity planning.</EmptyState></Card>;
+    return <Card><EmptyState title="No plan lines">Add a plan line to start capacity planning</EmptyState></Card>;
   }
 
   const updateLine = (patch) => setLines(lines.map(l => (l.id === line.id ? { ...l, ...patch } : l)));
@@ -55,25 +55,25 @@ const CapacityPlanner = () => {
   };
   const lockPlan = () => {
     setHiresPlan({ ...hiresPlan, [line.id]: { perm: toWeekMap(p.weeks, p.hires), temp: toWeekMap(p.weeks, p.temps) } });
-    notify('Hiring plan locked — it will no longer change when assumptions change.');
+    notify('Hiring plan locked, so it will no longer change when assumptions change');
   };
   const useRecommendation = () => {
     const { [line.id]: _, ...rest } = hiresPlan;
     setHiresPlan(rest);
-    notify('Using recommended hiring plan.');
+    notify('Using the recommended hiring plan');
   };
 
   const addLine = () => {
     const id = adding.id.trim().toUpperCase().replace(/\s+/g, '-');
-    if (!id || !adding.name.trim()) { notify('Line needs an id and a name.', 'warning'); return; }
-    if (lines.some(l => l.id === id)) { notify(`Line '${id}' already exists.`, 'warning'); return; }
+    if (!id || !adding.name.trim()) { notify('A line needs an id and a name', 'warning'); return; }
+    if (lines.some(l => l.id === id)) { notify(`Line \`${id}\` already exists`, 'warning'); return; }
     setLines([...lines, { ...DEFAULT_LINE_PARAMS, id, name: adding.name.trim(), siteId: adding.siteId || (sites[0] && sites[0].id), type: adding.type }]);
     setLineId(id);
     setAdding(null);
-    notify(`Added ${id}. Import its daily volume history in Demand Forecast.`, 'info');
+    notify(`Added \`${id}\`\nImport its daily volume history in Demand Forecast`, 'info');
   };
   const deleteLine = () => {
-    if (!window.confirm(`Delete plan line '${line.name}'? Its history stays in the dataset.`)) return;
+    if (!window.confirm(`Delete plan line “${line.name}”?\nIts history stays in the dataset`)) return;
     const remaining = lines.filter(l => l.id !== line.id);
     setLines(remaining);
     const { [line.id]: _, ...rest } = hiresPlan;
@@ -90,7 +90,7 @@ const CapacityPlanner = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Capacity & Headcount Plan"
-        subtitle="Required FTE = volume × AHT ÷ 3600 ÷ occupancy ÷ (paid hrs × (1 − shrinkage) × (1 − NPT)). Supply rolls forward with attrition, hiring classes, training and ramp."
+        subtitle={'Required FTE = volume × AHT ÷ 3600 ÷ occupancy ÷ (paid hrs × (1 − shrinkage) × (1 − NPT))\nSupply rolls forward with attrition, hiring classes, training and ramp'}
         actions={(
           <>
             <LineSelect lines={lines} value={line.id} onChange={setLineId} />
@@ -102,18 +102,18 @@ const CapacityPlanner = () => {
 
       {adding && (
         <Card className="p-4 bg-blue-50/50 border-blue-200 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-          <Field label="Line id"><TextInput value={adding.id} onChange={v => setAdding({ ...adding, id: v })} placeholder="e.g. SELLER-CHAT" /></Field>
+          <Field label="Line id"><TextInput value={adding.id} onChange={v => setAdding({ ...adding, id: v })} placeholder="Like SELLER CHAT" /></Field>
           <Field label="Name" className="md:col-span-2"><TextInput value={adding.name} onChange={v => setAdding({ ...adding, name: v })} placeholder="Seller Support · Chat" /></Field>
           <Field label="Site"><Select value={adding.siteId} onChange={v => setAdding({ ...adding, siteId: v })} options={sites.map(s => ({ value: s.id, label: s.name }))} /></Field>
           <div className="flex gap-2">
-            <Select value={adding.type} onChange={v => setAdding({ ...adding, type: v })} options={[{ value: 'realtime', label: 'Real-time' }, { value: 'deferred', label: 'Deferred' }]} aria-label="Queue type" />
+            <Select value={adding.type} onChange={v => setAdding({ ...adding, type: v })} options={[{ value: 'realtime', label: 'Real time' }, { value: 'deferred', label: 'Deferred' }]} aria-label="Queue type" />
             <Button onClick={addLine}>Add</Button>
           </div>
         </Card>
       )}
 
       {p.error ? (
-        <Card className="p-6 flex items-center gap-3 text-amber-800 bg-amber-50 border-amber-200"><AlertTriangle size={20} /> {p.error}. Import daily history for <b>{line.id}</b> in Demand Forecast.</Card>
+        <Card className="p-6 flex items-center gap-3 text-amber-800 bg-amber-50 border-amber-200"><AlertTriangle size={20} /> <span>{p.error}<br />Import daily history for <code>{line.id}</code> in Demand Forecast</span></Card>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -160,12 +160,12 @@ const CapacityPlanner = () => {
         <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
           <div>
             <h3 className="font-bold text-slate-800">Planning assumptions · {line.name}</h3>
-            <p className="text-xs text-slate-500">Edits recalculate the forecast-driven plan instantly across all modules.</p>
+            <p className="text-xs text-slate-500">Edits recalculate the forecast driven plan instantly on every screen</p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Select value={line.siteId} onChange={v => updateLine({ siteId: v })} options={sites.map(s => ({ value: s.id, label: s.name }))} className="w-40" aria-label="Site" />
-            <Select value={p.line.type} onChange={v => updateLine({ type: v })} options={[{ value: 'realtime', label: 'Real-time (Erlang)' }, { value: 'deferred', label: 'Deferred / back-office' }]} className="w-48" aria-label="Queue type" />
-            <Select value={p.line.costModel} onChange={v => updateLine({ costModel: v })} options={[{ value: 'hourly', label: 'In-house (per hour)' }, { value: 'perUnit', label: 'Vendor (per unit)' }]} className="w-48" aria-label="Cost model" />
+            <Select value={p.line.type} onChange={v => updateLine({ type: v })} options={[{ value: 'realtime', label: 'Real time (Erlang)' }, { value: 'deferred', label: 'Deferred or back office' }]} className="w-48" aria-label="Queue type" />
+            <Select value={p.line.costModel} onChange={v => updateLine({ costModel: v })} options={[{ value: 'hourly', label: 'In house (per hour)' }, { value: 'perUnit', label: 'Vendor (per unit)' }]} className="w-48" aria-label="Cost model" />
             <Button variant="danger" size="sm" onClick={deleteLine}><Trash2 size={14} /> Delete line</Button>
           </div>
         </div>
@@ -241,7 +241,7 @@ const CapacityPlanner = () => {
               </tfoot>
             </table>
           </div>
-          <div className="px-5 py-2 text-xs text-slate-500 border-t">Rows: red = demand not covered even with max OT · amber = OT used · LT = inside hiring lead time ({lead} wks).</div>
+          <div className="px-5 py-2 text-xs text-slate-500 border-t">Rows: red means demand is not covered even with max OT · amber means OT is used · LT means inside the hiring lead time of {lead} weeks</div>
         </Card>
       )}
     </div>

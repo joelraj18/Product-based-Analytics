@@ -81,8 +81,8 @@ const DemandForecast = () => {
   };
 
   const addEvent = () => {
-    if (!newEvent.name.trim() || !parseDate(newEvent.start) || !parseDate(newEvent.end)) { notify('Event needs a name, start and end date.', 'warning'); return; }
-    if (newEvent.end < newEvent.start) { notify('End date is before start date.', 'warning'); return; }
+    if (!newEvent.name.trim() || !parseDate(newEvent.start) || !parseDate(newEvent.end)) { notify('An event needs a name, start date and end date', 'warning'); return; }
+    if (newEvent.end < newEvent.start) { notify('The end date is before the start date', 'warning'); return; }
     setEvents([...events, { ...newEvent, name: newEvent.name.trim(), id: `EV-${Date.now().toString(36)}` }]);
     setNewEvent({ name: '', start: '', end: '', upliftPct: 10, lineId: 'all' });
   };
@@ -94,7 +94,7 @@ const DemandForecast = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Demand Forecast"
-        subtitle="Weekly volume forecast per program/queue. The method is chosen by backtest over the planning horizon; planned events add uplift on top."
+        subtitle={'Weekly volume forecast per program or queue\nThe method is chosen by a backtest over the planning horizon, and planned events add uplift on top'}
         actions={(
           <>
             <LineSelect lines={lines} value={lineId} onChange={setLineId} allowAll />
@@ -111,11 +111,11 @@ const DemandForecast = () => {
         <KPICard title={`Forecast volume (${settings.horizonWeeks} wk)`} value={formatCompact(totals.fcst)} delta={totals.yoy} deltaLabel="vs same weeks last year" />
         <KPICard info="peak" title="Peak week" value={totals.peak ? formatNumber(totals.peak.forecast) : '—'} sub={totals.peak ? `week of ${totals.peak.week}` : ''} />
         <KPICard info="wape" title="Backtest WAPE" value={Number.isFinite(totals.wape) ? `${totals.wape.toFixed(1)}%` : '—'} status={<StatusPill status={accuracyStatus(totals.wape)}>{accuracyStatus(totals.wape) === 'good' ? 'On target ≤5%' : accuracyStatus(totals.wape) === 'warning' ? 'Review' : 'Off target'}</StatusPill>} icon={<Target size={20} className="text-blue-600" />} />
-        <KPICard info="bias" title="Backtest bias" value={Number.isFinite(totals.bias) ? `${totals.bias >= 0 ? '+' : ''}${totals.bias.toFixed(1)}%` : '—'} sub={totals.bias > 0 ? 'over-forecasting' : 'under-forecasting'} />
+        <KPICard info="bias" title="Backtest bias" value={Number.isFinite(totals.bias) ? `${totals.bias >= 0 ? '+' : ''}${totals.bias.toFixed(1)}%` : '—'} sub={totals.bias > 0 ? 'over forecasting' : 'under forecasting'} />
       </div>
 
       <ChartCard
-        title="Weekly volume — last 52 weeks actual and forecast"
+        title="Weekly volume: last 52 weeks actual and forecast"
         subtitle="Dashed = statistical forecast before event uplifts"
         height={340}
         actions={(
@@ -134,7 +134,7 @@ const DemandForecast = () => {
             {lastActual && <ReferenceLine x={lastActual.week} stroke={INK.axis} label={{ value: 'today', fontSize: 11, fill: INK.muted, position: 'insideTopRight' }} />}
             <Area type="monotone" dataKey="actual" name="Actual" stroke={SERIES[0]} fill={SERIES[0]} fillOpacity={0.12} strokeWidth={2} dot={false} connectNulls={false} />
             <Line type="monotone" dataKey="base" name="Statistical forecast" stroke={SERIES[1]} strokeWidth={2} strokeDasharray="5 4" dot={false} />
-            <Line type="monotone" dataKey="forecast" name="Forecast incl. events" stroke={SERIES[1]} strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="forecast" name="Forecast with events" stroke={SERIES[1]} strokeWidth={2} dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -171,21 +171,21 @@ const DemandForecast = () => {
         <Card className="p-5 space-y-3">
           <div className="font-bold text-slate-800">Volume history data</div>
           <p className="text-sm text-slate-500">
-            Daily rows with columns <code className="bg-slate-100 px-1 rounded">date, line_id, volume</code> (optional <code className="bg-slate-100 px-1 rounded">aht</code>). Importing replaces history only for the line_ids in the file. Partial weeks are ignored.
+            Daily rows with columns <code className="bg-slate-100 px-1 rounded">date, line_id, volume</code> and optionally <code className="bg-slate-100 px-1 rounded">aht</code><br />Importing replaces history only for the lines in the file, and partial weeks are ignored
           </p>
           <div className="flex flex-wrap gap-2">
             <SchemaImportButton schemaId="volume_history">Import history (CSV/Excel)</SchemaImportButton>
             <Button variant="secondary" onClick={() => downloadCSV(volumeHistory.slice(-14), 'volume_history_template.csv', ['date', 'line_id', 'volume', 'aht'])}><FileDown size={16} /> Template</Button>
             <Button variant="secondary" onClick={() => downloadCSV(volumeHistory, `volume_history_${today()}.csv`, ['date', 'line_id', 'volume', 'aht'])}><Download size={16} /> Export all</Button>
           </div>
-          <p className="text-xs text-slate-400">{formatNumber(volumeHistory.length)} daily rows · {Object.keys(plan.series).length} line(s) with complete weeks.</p>
+          <p className="text-xs text-slate-400">{formatNumber(volumeHistory.length)} daily rows · {Object.keys(plan.series).length} line(s) with complete weeks</p>
         </Card>
       </div>
 
       <Card>
         <div className="px-5 py-3 border-b font-bold text-slate-800">Planned events &amp; uplifts</div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-6 gap-3 items-end border-b bg-slate-50">
-          <Field label="Event" className="md:col-span-2"><TextInput value={newEvent.name} onChange={v => setNewEvent({ ...newEvent, name: v })} placeholder="e.g. Marketing campaign" /></Field>
+          <Field label="Event" className="md:col-span-2"><TextInput value={newEvent.name} onChange={v => setNewEvent({ ...newEvent, name: v })} placeholder="Like Marketing campaign" /></Field>
           <Field label="Start"><input type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm" value={newEvent.start} onChange={e => setNewEvent({ ...newEvent, start: e.target.value })} /></Field>
           <Field label="End"><input type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm" value={newEvent.end} onChange={e => setNewEvent({ ...newEvent, end: e.target.value })} /></Field>
           <Field label="Uplift %"><NumberInput value={newEvent.upliftPct} min={-90} max={500} onChange={v => setNewEvent({ ...newEvent, upliftPct: v })} /></Field>
@@ -196,7 +196,7 @@ const DemandForecast = () => {
         </div>
         <DataTable
           rows={events}
-          emptyText="No events — the forecast is purely statistical."
+          emptyText="No events, so the forecast is purely statistical"
           columns={[
             { key: 'name', label: 'Event' },
             { key: 'start', label: 'Start' },

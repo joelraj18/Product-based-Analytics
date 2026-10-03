@@ -21,9 +21,9 @@ const DEFAULT_CHECKLIST = [
   { id: 'c1', text: 'Peak forecast signed off with Program and Finance', done: false },
   { id: 'c2', text: 'Seasonal hiring classes scheduled with Talent Acquisition', done: false },
   { id: 'c3', text: 'Training seats and trainers booked for peak classes', done: false },
-  { id: 'c4', text: 'Leave blackout / restricted-leave windows published', done: false },
-  { id: 'c5', text: 'OT budget and vendor overflow pre-approved', done: false },
-  { id: 'c6', text: 'Real-time escalation path and daily stand-up agreed', done: false },
+  { id: 'c4', text: 'Leave blackout and restricted leave windows published', done: false },
+  { id: 'c5', text: 'OT budget and vendor overflow preapproved', done: false },
+  { id: 'c6', text: 'Real time escalation path and daily standup agreed', done: false },
 ];
 
 const summarize = (pl) => {
@@ -98,7 +98,7 @@ const ScenarioRisk = () => {
 
   const delta = (a, bVal, digits = 0, money = false) => {
     const d = a - bVal;
-    if (Math.abs(d) < 1e-9) return <span className="text-slate-400">—</span>;
+    if (Math.abs(d) < 1e-9) return <span className="text-slate-400">0</span>;
     return <span className={d > 0 ? 'text-rose-700' : 'text-emerald-800'}>{d > 0 ? '+' : ''}{money ? formatCompact(d, currency) : formatNumber(d, digits)}</span>;
   };
 
@@ -109,12 +109,12 @@ const ScenarioRisk = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Scenarios, Risks & Peak Readiness"
-        subtitle="Stress-test the current hiring plan against demand and productivity shocks, see which driver moves cost most, and track mitigations."
+        subtitle="Stress test the current hiring plan against demand and productivity shocks, see which driver moves cost the most, and track mitigations"
         actions={<Button variant="secondary" onClick={() => setScenario(ZERO)}><RotateCcw size={16} /> Reset scenario</Button>}
       />
 
       <Card className="p-5">
-        <h3 className="font-bold text-slate-800 mb-4">What-if levers <span className="text-xs font-normal text-slate-500">(applied to every line; current hiring plan held fixed)</span></h3>
+        <h3 className="font-bold text-slate-800 mb-4">What if levers <span className="text-xs font-normal text-slate-500">(applied to every line; current hiring plan held fixed)</span></h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {LEVERS.map(l => (
             <label key={l.key} className="block">
@@ -139,11 +139,11 @@ const ScenarioRisk = () => {
             <tbody className="divide-y divide-slate-100">
               <tr><td className="px-4 py-2">Peak required FTE</td><td className="px-3 text-right">{formatNumber(b.peakReq)}</td><td className="px-3 text-right">{formatNumber(s.peakReq)}</td><td className="px-3 text-right">{delta(s.peakReq, b.peakReq)}</td></tr>
               <tr><td className="px-4 py-2">Weeks short after OT</td><td className="px-3 text-right">{b.shortWeeks}</td><td className="px-3 text-right">{s.shortWeeks}</td><td className="px-3 text-right">{delta(s.shortWeeks, b.shortWeeks)}</td></tr>
-              <tr><td className="px-4 py-2">Uncovered FTE-weeks</td><td className="px-3 text-right">{formatNumber(b.shortFteWeeks, 1)}</td><td className="px-3 text-right">{formatNumber(s.shortFteWeeks, 1)}</td><td className="px-3 text-right">{delta(s.shortFteWeeks, b.shortFteWeeks, 1)}</td></tr>
+              <tr><td className="px-4 py-2">Uncovered FTE weeks</td><td className="px-3 text-right">{formatNumber(b.shortFteWeeks, 1)}</td><td className="px-3 text-right">{formatNumber(s.shortFteWeeks, 1)}</td><td className="px-3 text-right">{delta(s.shortFteWeeks, b.shortFteWeeks, 1)}</td></tr>
               <tr><td className="px-4 py-2">OT hours</td><td className="px-3 text-right">{formatNumber(b.ot)}</td><td className="px-3 text-right">{formatNumber(s.ot)}</td><td className="px-3 text-right">{delta(s.ot, b.ot)}</td></tr>
               <tr><td className="px-4 py-2">Variable cost</td><td className="px-3 text-right">{formatCompact(b.cost, currency)}</td><td className="px-3 text-right">{formatCompact(s.cost, currency)}</td><td className="px-3 text-right">{delta(s.cost, b.cost, 0, true)}</td></tr>
               <tr className="bg-blue-50/50"><td className="px-4 py-2">Hires to cover <span className="text-xs text-slate-500">(perm + temp)</span></td><td className="px-3 text-right">{b.hires} + {b.temps}</td><td className="px-3 text-right">{r.hires} + {r.temps}</td><td className="px-3 text-right">{delta(r.hires + r.temps, b.hires + b.temps)}</td></tr>
-              <tr className="bg-blue-50/50"><td className="px-4 py-2">Cost if re-planned</td><td className="px-3 text-right">{formatCompact(b.cost, currency)}</td><td className="px-3 text-right">{formatCompact(r.cost, currency)}</td><td className="px-3 text-right">{delta(r.cost, b.cost, 0, true)}</td></tr>
+              <tr className="bg-blue-50/50"><td className="px-4 py-2">Cost if replanned</td><td className="px-3 text-right">{formatCompact(b.cost, currency)}</td><td className="px-3 text-right">{formatCompact(r.cost, currency)}</td><td className="px-3 text-right">{delta(r.cost, b.cost, 0, true)}</td></tr>
             </tbody>
           </table>
         </Card>
@@ -164,7 +164,7 @@ const ScenarioRisk = () => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <ChartCard title="Cost sensitivity (tornado)" subtitle="Change in horizon variable cost when each driver moves alone, re-planning hires" height={240}>
+        <ChartCard title="Cost sensitivity (tornado)" subtitle="Change in horizon variable cost when each driver moves alone and hires are replanned" height={240}>
           <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
             <BarChart data={tornado} layout="vertical" stackOffset="sign" margin={{ left: 20, right: 16 }}>
               <CartesianGrid {...GRID_PROPS} horizontal={false} vertical />

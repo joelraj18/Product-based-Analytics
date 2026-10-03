@@ -65,7 +65,7 @@ const BudgetPlanner = () => {
   const lineRows = plans.map(p => {
     const cost = p.costs.reduce((s, c) => s + c.total, 0);
     const vol = p.volumes.reduce((a, b) => a + b, 0);
-    return { id: p.line.id, name: p.line.name, model: p.line.costModel === 'perUnit' ? 'Vendor / unit' : 'In-house / hr', volume: vol, cost, cpc: costPerUnit(cost, vol), share: k.total ? (100 * cost) / k.total : 0, ot: p.costs.reduce((s, c) => s + c.overtime, 0) };
+    return { id: p.line.id, name: p.line.name, model: p.line.costModel === 'perUnit' ? 'Vendor / unit' : 'In house per hour', volume: vol, cost, cpc: costPerUnit(cost, vol), share: k.total ? (100 * cost) / k.total : 0, ot: p.costs.reduce((s, c) => s + c.overtime, 0) };
   });
 
   const updateOp = (month, field, value) => {
@@ -84,7 +84,7 @@ const BudgetPlanner = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Variable Cost Budget vs OP"
-        subtitle="Cost of the headcount plan by month — in-house labour, vendor per-unit billing, overtime and hiring — compared with OP1 (annual plan) and OP2 (mid-year refresh) targets."
+        subtitle="Cost of the headcount plan by month, covering in house labour, vendor billing per unit, overtime and hiring, compared with the OP1 annual plan and OP2 mid year refresh targets"
         actions={(
           <>
             <Button variant="success" onClick={exportBudget}><Download size={16} /> Budget CSV</Button>
@@ -115,7 +115,7 @@ const BudgetPlanner = () => {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Cost composition by month" subtitle="Stacked: in-house labour, vendor, overtime, hiring" height={300}>
+        <ChartCard title="Cost composition by month" subtitle="Stacked: in house labour, vendor, overtime and hiring" height={300}>
           <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
             <BarChart data={months}>
               <CartesianGrid {...GRID_PROPS} />
@@ -123,7 +123,7 @@ const BudgetPlanner = () => {
               <YAxis {...AXIS_PROPS} tickFormatter={v => formatCompact(v, currency)} width={64} />
               <Tooltip {...TOOLTIP_PROPS} cursor={{ fill: '#f1f5f9' }} formatter={(v, n) => [fmt(v), n]} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="inhouse" name="In-house" stackId="c" fill={SERIES[0]} stroke="#fff" strokeWidth={1} maxBarSize={40} />
+              <Bar dataKey="inhouse" name="In house" stackId="c" fill={SERIES[0]} stroke="#fff" strokeWidth={1} maxBarSize={40} />
               <Bar dataKey="vendor" name="Vendor" stackId="c" fill={SERIES[1]} stroke="#fff" strokeWidth={1} maxBarSize={40} />
               <Bar dataKey="overtime" name="Overtime" stackId="c" fill={SERIES[2]} stroke="#fff" strokeWidth={1} maxBarSize={40} />
               <Bar dataKey="hiring" name="Hiring" stackId="c" fill={SERIES[3]} stroke="#fff" strokeWidth={1} maxBarSize={40} radius={[4, 4, 0, 0]} />
@@ -135,7 +135,7 @@ const BudgetPlanner = () => {
       <Card>
         <div className="px-5 py-3 border-b flex flex-wrap justify-between items-center gap-2">
           <span className="font-bold text-slate-800">Monthly budget &amp; OP targets <span className="font-normal text-xs text-slate-500">(edit OP cells; first/last months may be partial)</span></span>
-          <Button size="sm" variant="secondary" onClick={() => { if (window.confirm('Replace OP targets with values derived from the current plan?')) setOpTargets(deriveOpTargets(monthlyTotals(plans))); }}><Wand2 size={12} /> Re-seed OP from plan</Button>
+          <Button size="sm" variant="secondary" onClick={() => { if (window.confirm('Replace OP targets with values derived from the current plan?')) setOpTargets(deriveOpTargets(monthlyTotals(plans))); }}><Wand2 size={12} /> Reseed OP from plan</Button>
         </div>
         <div className="overflow-auto">
           <table className="w-full text-sm">

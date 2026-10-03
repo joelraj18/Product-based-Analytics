@@ -91,7 +91,7 @@ const Dashboard = () => {
   }, [filtered, processed, months, month, config.statusCol, config.valCol]);
 
   if (!data.length) {
-    return <Card><EmptyState title="No data loaded">Import a CSV in Data Grid to populate the dashboard.</EmptyState></Card>;
+    return <Card><EmptyState title="No data loaded">Import a CSV in Data Grid to populate the dashboard</EmptyState></Card>;
   }
 
   if (drillDown) {
@@ -125,7 +125,7 @@ const Dashboard = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <PageHeader
         title="Sales & Fulfilment Overview"
-        subtitle="Works on any order-level dataset — map your columns with the gear icon. Click a tile, bar or month to drill into records."
+        subtitle={'Works on any table of orders, so map your columns with the gear icon\nClick a tile, bar or month to see the records behind it'}
         actions={(
           <>
             <Select value={month} onChange={setSelectedMonth} options={[{ value: 'All', label: 'All months' }, ...months.map(m => ({ value: m, label: monthLabel(m) }))]} className="w-40" aria-label="Month filter" />
@@ -160,7 +160,7 @@ const Dashboard = () => {
                 <Area type="monotone" dataKey="value" stroke={SERIES[0]} strokeWidth={2} fill="url(#colorRev)" activeDot={{ r: 5 }} style={{ cursor: 'pointer' }} />
               </AreaChart>
             </ResponsiveContainer>
-          ) : <EmptyState title="No valid dates">Check the date column mapping.</EmptyState>}
+          ) : <EmptyState title="No valid dates">Check the date column mapping</EmptyState>}
         </ChartCard>
         <ChartCard title="Status distribution" subtitle={month === 'All' ? 'All months' : monthLabel(month)}>
           <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>

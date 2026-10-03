@@ -68,7 +68,7 @@ export const parseJsonTable = (text) => {
   let data = JSON.parse(text);
   if (!Array.isArray(data)) data = Array.isArray(data.data) ? data.data : Array.isArray(data.rows) ? data.rows : null;
   if (!data || !data.every(r => r && typeof r === 'object' && !Array.isArray(r))) {
-    throw new Error('JSON must be an array of objects, e.g. [{"date": "2026-01-05", "volume": 120}]');
+    throw new Error('JSON must be a list of objects, one per row, with the same keys in each');
   }
   const columns = [...new Set(data.flatMap(r => Object.keys(r)))];
   return [columns, ...data.map(r => columns.map(c => (r[c] !== null && typeof r[c] === 'object' ? JSON.stringify(r[c]) : r[c])))];
@@ -78,18 +78,18 @@ export const parseJsonTable = (text) => {
 // Returns { fileName, sheets: [{ name, grid, headerRow }] }.
 export const readTable = async (file) => {
   if (!file) throw new Error('No file selected');
-  if (file.size > MAX_BYTES) throw new Error(`File is ${(file.size / 1048576).toFixed(1)} MB; the limit is ${MAX_BYTES / 1048576} MB. Split it or remove unused columns.`);
+  if (file.size > MAX_BYTES) throw new Error(`File is ${(file.size / 1048576).toFixed(1)} MB and the limit is ${MAX_BYTES / 1048576} MB\nSplit it or remove unused columns`);
   const ext = extOf(file.name);
   let sheets;
   if (ext === 'xls') {
-    throw new Error('Old .xls files are not supported. In Excel choose File → Save As → .xlsx (or .csv) and upload that.');
+    throw new Error('Old Excel 97 workbooks are not supported\nIn Excel choose File → Save As, pick Excel Workbook or CSV, and upload that');
   } else if (ext === 'xlsx') {
     const { default: readXlsx } = await import('read-excel-file/browser');
     let result;
     try {
       result = await readXlsx(file);
     } catch (e) {
-      throw new Error(`Could not read this Excel file (${e.message}). Make sure it is a normal .xlsx workbook, not password-protected.`);
+      throw new Error(`Could not read this Excel file (${e.message})\nMake sure it is a normal Excel workbook without a password`);
     }
     sheets = result.map(s => ({ name: s.sheet, grid: s.data.map(r => r.map(c => (c instanceof Date ? toISO(c) : c))) }));
   } else if (['csv', 'tsv', 'txt', 'json'].includes(ext)) {
@@ -97,10 +97,10 @@ export const readTable = async (file) => {
     const grid = ext === 'json' ? parseJsonTable(text) : parseTextTable(text, ext);
     sheets = [{ name: file.name.replace(/\.[^.]+$/, ''), grid }];
   } else {
-    throw new Error(`".${ext || '?'}" files are not supported. Upload .csv, .tsv, .txt, .json or .xlsx.`);
+    throw new Error(`That file type is not supported\nUpload a CSV, TSV, TXT, JSON or Excel workbook`);
   }
   sheets = sheets.filter(s => s.grid.some(r => r.some(c => !isEmpty(c))));
-  if (!sheets.length) throw new Error('The file is empty.');
+  if (!sheets.length) throw new Error('The file is empty');
   return { fileName: file.name, sheets: sheets.map(s => ({ ...s, headerRow: detectHeaderRow(s.grid) })) };
 };
 

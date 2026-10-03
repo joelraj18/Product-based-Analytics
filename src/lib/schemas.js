@@ -16,13 +16,13 @@ export const normalizeHeader = (h) => String(h ?? '')
   .replace(/^_+|_+$/g, '');
 
 const LINE_PARAM_COLUMNS = [
-  col('site_id', 'text', 'Site the line belongs to (must match a site id, e.g. NH)', 'NH', 'siteId'),
-  col('type', 'text', '"realtime" (phone/chat, staffed with Erlang C) or "deferred" (email/back-office)', 'realtime'),
+  col('site_id', 'text', 'Site the line belongs to, matching a site id like NH', 'NH', 'siteId'),
+  col('type', 'text', '`realtime` for phone or chat, staffed with Erlang C, or `deferred` for email and back office work', 'realtime'),
   col('aht', 'number', 'Average handle time per contact, in seconds', 360),
-  col('npt', 'number', 'Non-productive time while on shift, % (meetings, coaching, system downtime)', 10),
+  col('npt', 'number', 'Non productive time while on shift in %, such as meetings, coaching and system downtime', 10),
   col('shrinkage', 'number', 'Paid time lost to leave, absence, breaks and training, %', 30),
   col('occupancy', 'number', 'Target share of productive time spent handling work, %', 85),
-  col('hours_per_week', 'number', 'Paid hours per full-time employee per week', 40, 'hoursPerWeek'),
+  col('hours_per_week', 'number', 'Paid hours per full time employee per week', 40, 'hoursPerWeek'),
   col('attrition_monthly', 'number', 'Share of staff who leave each month, %', 3, 'attritionMonthly'),
   col('training_weeks', 'number', 'Weeks a new hire spends in training (0% productive)', 3, 'trainingWeeks'),
   col('ramp_weeks', 'number', 'Weeks of nesting until a new hire is fully productive', 4, 'rampWeeks'),
@@ -31,7 +31,7 @@ const LINE_PARAM_COLUMNS = [
   col('current_hc', 'number', 'Headcount on the line today', 95, 'currentHC'),
   col('max_ot_pct', 'number', 'Maximum overtime, % of tenured hours', 10, 'maxOtPct'),
   col('buffer_pct', 'number', 'Extra staffing buffer on top of the requirement, %', 2, 'bufferPct'),
-  col('cost_model', 'text', '"hourly" (in-house) or "perUnit" (vendor billed per contact)', 'hourly', 'costModel'),
+  col('cost_model', 'text', '`hourly` for in house staff, or `perUnit` for a vendor billed per contact', 'hourly', 'costModel'),
   col('cost_per_hour', 'number', 'Fully loaded cost per paid hour', 450, 'costPerHour'),
   col('cost_per_unit', 'number', 'Vendor price per contact handled', 60, 'costPerUnit'),
   col('ot_multiplier', 'number', 'Overtime pay multiplier', 1.5, 'otMultiplier'),
@@ -45,7 +45,7 @@ export const SCHEMAS = [
     id: 'volume_history',
     label: 'Volume history (daily)',
     usedBy: ['Demand Forecast', 'Capacity & Headcount', 'Intraday Staffing', 'Budget & OP', 'Scenarios & Risks', 'Planning Hub'],
-    description: 'How many contacts (calls, chats, emails, tickets…) arrived each day for each plan line. This is the starting point of every forecast. Give at least 8 complete weeks; 2+ years lets the forecast learn yearly seasonality.',
+    description: 'How many contacts (calls, chats, emails, tickets…) arrived each day for each plan line\nThis is the starting point of every forecast\nGive at least 8 complete weeks, and 2 or more years lets the forecast learn yearly seasonality',
     required: [
       col('date', 'date', 'Calendar day', '2026-01-05'),
       col('line_id', 'text', 'Plan line the volume belongs to (must match an id in Plan lines)', 'CS-VOICE'),
@@ -62,9 +62,9 @@ export const SCHEMAS = [
     id: 'plan_lines',
     label: 'Plan lines & assumptions',
     usedBy: ['Capacity & Headcount', 'every planning screen'],
-    description: 'One row per program/queue you plan headcount for, with its productivity, supply and cost assumptions. Missing optional columns fall back to sensible defaults you can edit later.',
+    description: 'One row per program or queue you plan headcount for, with its productivity, supply and cost assumptions\nMissing optional columns fall back to sensible defaults you can edit later',
     required: [
-      col('id', 'text', 'Short unique code for the line (used as line_id elsewhere)', 'CS-VOICE'),
+      col('id', 'text', 'Short unique code for the line, used as `line_id` in other files', 'CS-VOICE'),
       col('name', 'text', 'Readable name', 'Customer Support · Voice'),
     ],
     optional: LINE_PARAM_COLUMNS,
@@ -78,7 +78,7 @@ export const SCHEMAS = [
     id: 'actuals',
     label: 'Weekly actuals',
     usedBy: ['Planning KPIs', 'Planning Hub'],
-    description: 'What actually happened each week per line, compared with the plan. Drives forecast accuracy, service level, adherence and cost KPIs.',
+    description: 'What actually happened each week per line, compared with the plan\nDrives the forecast accuracy, service level, adherence and cost KPIs',
     required: [
       col('week_start', 'date', 'Monday of the week', '2026-09-21'),
       col('line_id', 'text', 'Plan line', 'CS-VOICE'),
@@ -99,7 +99,7 @@ export const SCHEMAS = [
       col('cost_actual', 'number', 'Actual cost for the week', 1689000),
     ],
     modes: [
-      { id: 'upsert', label: 'Add or update weeks (match on week_start + line_id)' },
+      { id: 'upsert', label: 'Add or update weeks, matching on week start and line id' },
       { id: 'replace', label: 'Replace all actuals' },
     ],
     keyOf: r => `${r.line_id}|${r.week_start}`,
@@ -108,9 +108,9 @@ export const SCHEMAS = [
     id: 'op_targets',
     label: 'OP budget targets (monthly)',
     usedBy: ['Budget & OP', 'Planning Hub'],
-    description: 'The operating-plan targets Finance holds you to. OP1 is the annual plan; OP2 is the mid-year refresh.',
+    description: 'The operating plan targets Finance holds you to\nOP1 is the annual plan and OP2 is the mid year refresh',
     required: [
-      col('month', 'month', 'Month as YYYY-MM', '2026-11'),
+      col('month', 'month', 'Month written as year and month, like 2026-11', '2026-11'),
       col('op1_cost', 'number', 'OP1 cost target for the month', 36500000),
       col('op2_cost', 'number', 'OP2 cost target for the month', 38400000),
     ],
@@ -128,7 +128,7 @@ export const SCHEMAS = [
     id: 'events',
     label: 'Planned events (forecast uplifts)',
     usedBy: ['Demand Forecast'],
-    description: 'Known future events (sales, launches, campaigns) that will raise or lower volume beyond normal seasonality.',
+    description: 'Known future events like sales, launches or campaigns that will raise or lower volume beyond normal seasonality',
     required: [
       col('name', 'text', 'Event name', 'Festive sale'),
       col('start', 'date', 'First day of the event', '2026-11-20'),
@@ -145,11 +145,11 @@ export const SCHEMAS = [
     id: 'defects',
     label: 'Planning defects (root causes)',
     usedBy: ['Planning KPIs'],
-    description: 'A log of planning misses and their root cause, used for the Pareto chart.',
+    description: 'A log of planning misses and their root cause, used for the Pareto chart',
     required: [
       col('date', 'date', 'When the defect happened', '2026-09-14'),
       col('line_id', 'text', 'Plan line', 'CS-CHAT'),
-      col('category', 'text', 'Root cause, e.g. Forecast miss, AHT drift, Unplanned shrinkage', 'Forecast miss'),
+      col('category', 'text', 'Root cause, such as Forecast miss, AHT drift or Unplanned shrinkage', 'Forecast miss'),
     ],
     optional: [
       col('impact_fte', 'number', 'Size of the miss in FTE', 2.5),
@@ -164,7 +164,7 @@ export const SCHEMAS = [
     id: 'risks',
     label: 'Risk register',
     usedBy: ['Scenarios & Risks', 'Planning Hub'],
-    description: 'Risks to the plan with likelihood and impact scored 1–5.',
+    description: 'Risks to the plan, with likelihood and impact scored from 1 to 5',
     required: [
       col('title', 'text', 'What could go wrong', 'Hiring class delayed'),
       col('likelihood', 'number', 'How likely, 1 (rare) to 5 (almost certain)', 3),
@@ -185,14 +185,14 @@ export const SCHEMAS = [
     id: 'orders',
     label: 'Orders / sales records',
     usedBy: ['Sales Dashboard', 'Data Grid', 'Data Cleaning'],
-    description: 'Any order-level or transaction-level table. Extra columns are kept and can be used in the dashboard (map them with the gear icon) and in SQL.',
+    description: 'Any table of orders or transactions\nExtra columns are kept, and you can use them in the dashboard (map them with the gear icon) and in SQL',
     required: [
       col('date', 'date', 'Order date', '2026-03-14'),
       col('amount', 'number', 'Order value', 1499),
     ],
     optional: [
       col('id', 'text', 'Order id', 'ORD-10001'),
-      col('status', 'text', 'e.g. Pending, Shipped, Delivered, Cancelled', 'Delivered'),
+      col('status', 'text', 'Like Pending, Shipped, Delivered or Cancelled', 'Delivered'),
       col('region', 'text', 'Region or market', 'North'),
       col('category', 'text', 'Product category', 'Electronics'),
       col('units', 'number', 'Units in the order', 2),

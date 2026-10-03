@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CheckCircle, AlertTriangle, AlertCircle, Info, X, ChevronUp, ChevronDown, Inbox } from 'lucide-react';
-import { InfoTip } from './help';
+import { InfoTip, Prose } from './help';
 
 export const Card = ({ children, className = '', ...rest }) => (
   <div className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`} {...rest}>
@@ -40,7 +40,7 @@ export const PageHeader = ({ title, subtitle, actions }) => (
   <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
     <div>
       <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-      {subtitle && <p className="text-sm text-slate-500 mt-1 max-w-3xl">{subtitle}</p>}
+      {subtitle && <p className="text-sm text-slate-500 mt-1 max-w-3xl"><Prose text={subtitle} /></p>}
     </div>
     {actions && <div className="flex flex-wrap gap-2 items-center">{actions}</div>}
   </div>
@@ -278,7 +278,7 @@ export const ToastProvider = ({ children }) => {
           return (
             <div key={t.id} role="status" className={`bg-white border border-slate-200 border-l-4 ${color} shadow-lg rounded-lg p-3 flex gap-2 items-start text-sm text-slate-700`}>
               <meta.Icon size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-              <div className="flex-1 whitespace-pre-line">{t.message}</div>
+              <div className="flex-1"><Prose text={t.message} /></div>
               <button type="button" aria-label="Dismiss" onClick={() => dismiss(t.id)} className="text-slate-400 hover:text-slate-700"><X size={14} /></button>
             </div>
           );

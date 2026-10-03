@@ -210,7 +210,7 @@ export const seedDefects = (lines = seedLines()) => {
 };
 
 export const seedRisks = () => [
-  { id: 'R-1', title: 'Peak-season volume above forecast', lineId: 'CS-VOICE', likelihood: 3, impact: 5, owner: 'Planning', mitigation: 'Pre-approve 15% OT cap and a 2-week vendor overflow contract', status: 'Open', due: '' },
+  { id: 'R-1', title: 'Peak season volume above forecast', lineId: 'CS-VOICE', likelihood: 3, impact: 5, owner: 'Planning', mitigation: 'Preapprove a 15% OT cap and a 2 week vendor overflow contract', status: 'Open', due: '' },
   { id: 'R-2', title: 'Hiring class delayed by recruiting backlog', lineId: 'CS-CHAT', likelihood: 3, impact: 4, owner: 'Talent Acquisition', mitigation: 'Start sourcing 2 weeks earlier; keep a waitlist of 10 candidates', status: 'Open', due: '' },
   { id: 'R-3', title: 'AHT increase after policy change', lineId: 'PARTNER-EMAIL', likelihood: 2, impact: 3, owner: 'Program', mitigation: 'Macro templates + refresher training before launch', status: 'Monitoring', due: '' },
   { id: 'R-4', title: 'Vendor attrition above 5%/month', lineId: 'RETURNS-OPS', likelihood: 4, impact: 3, owner: 'Vendor Mgmt', mitigation: 'Weekly attrition review; contractual staffing SLA', status: 'Open', due: '' },

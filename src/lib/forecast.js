@@ -72,7 +72,7 @@ export const holtWinters = (y, h, { season = 52, alpha = 0.3, beta = 0.05, gamma
 };
 
 export const METHODS = {
-  holtWinters: { label: 'Holt-Winters (trend + seasonality)', fn: holtWinters },
+  holtWinters: { label: 'Holt Winters (trend and seasonality)', fn: holtWinters },
   trendSeasonal: { label: 'Linear trend × seasonal index', fn: trendSeasonal },
   seasonalNaive: { label: 'Seasonal naive (same week last year)', fn: seasonalNaive },
   movingAverage: { label: 'Moving average (8 wk)', fn: movingAverage },

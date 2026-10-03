@@ -19,7 +19,7 @@ const AuthModule = ({ onLogin }) => {
 
     if (isRegistering) {
       if (!formData.name.trim()) return setError('Name is required');
-      if (load('user_' + email, null)) return setError('An account with this email already exists. Sign in instead.');
+      if (load('user_' + email, null)) return setError('An account with this email already exists, so sign in instead');
       if (formData.password.length < 6) return setError('Password must be at least 6 characters');
       const newUser = { name: formData.name.trim(), email, password: formData.password };
       save('user_' + email, newUser);
@@ -29,7 +29,7 @@ const AuthModule = ({ onLogin }) => {
     }
 
     const user = load('user_' + email, null);
-    if (!user) return setError('User not found. Please create an account.');
+    if (!user) return setError('User not found, please create an account');
     if (user.password !== formData.password) return setError('Invalid password');
     save('current_user', { name: user.name, email: user.email });
     onLogin({ name: user.name, email: user.email });
@@ -87,7 +87,7 @@ const AuthModule = ({ onLogin }) => {
               {isRegistering ? 'Sign In' : 'Create Account'}
             </button>
           </div>
-          <p className="mt-4 text-[11px] text-center text-slate-400">Accounts and data are stored only in this browser.</p>
+          <p className="mt-4 text-[11px] text-center text-slate-400">Accounts and data are stored only in this browser</p>
         </div>
       </div>
     </div>
