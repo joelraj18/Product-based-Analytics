@@ -330,10 +330,10 @@ const ExcelLab = () => {
   const [draft, setDraft] = useState(null);
   const [target, setTarget] = useState(null);
   const dataCols = columnsOf(rows.slice(0, 200)).length;
-  const freeCol = indexToCol(dataCols + 1);
+  const freeCol = indexToCol(dataCols);
   // Starter formulas go in row 2 of the first empty column after the data.
   const addStarter = (formula) => {
-    let col = dataCols + 1;
+    let col = dataCols;
     while (col < 60 && (sheet.getRaw(1, col) !== undefined || sheet.isSpillCell(1, col) || sheet.getRaw(0, col) !== undefined)) col += 1;
     edit(1, col, fill(formula, rows.length + 1));
     setTarget({ row: 1, col, at: Date.now() });

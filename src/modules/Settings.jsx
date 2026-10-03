@@ -34,8 +34,8 @@ const Settings = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-10">
-      <PageHeader title="Settings" subtitle="Preferences, planning defaults and workspace data" />
+    <div className="max-w-3xl space-y-6 pb-10">
+      <PageHeader hideTitle title="Settings" subtitle="Preferences, planning defaults and workspace data" />
 
       <Card className="p-6 space-y-4">
         <h3 className="text-lg font-bold text-slate-800">Preferences</h3>

@@ -91,7 +91,10 @@ export const welchTest = ({ meanA, sdA, nA, meanB, sdB, nB, alpha = 0.05 }) => {
   const vA = (sdA * sdA) / nA;
   const vB = (sdB * sdB) / nB;
   const se = Math.sqrt(vA + vB);
-  const t = se ? (meanB - meanA) / se : 0;
+  const diff0 = meanB - meanA;
+  // No spread at all: any difference is certain, no difference is no evidence.
+  if (!(se > 0)) return { diff: diff0, uplift: meanA ? diff0 / meanA : null, t: null, df: null, p: diff0 === 0 ? 1 : 0, ci: [diff0, diff0], significant: diff0 !== 0 };
+  const t = diff0 / se;
   const df = (vA + vB) ** 2 / ((vA * vA) / (nA - 1) + (vB * vB) / (nB - 1));
   const p = tTwoSided(t, df);
   const zc = normInv(1 - alpha / 2); // large sample interval
@@ -104,6 +107,7 @@ export const welchTest = ({ meanA, sdA, nA, meanB, sdB, nB, alpha = 0.05 }) => {
 export const sampleSize = ({ baseline, mde, alpha = 0.05, power = 0.8 }) => {
   const p1 = baseline;
   const p2 = baseline * (1 + mde);
+  if (!(p1 > 0 && p1 < 1 && p2 > 0 && p2 < 1 && p2 !== p1)) return null; // rate must stay between 0 and 100%
   const pBar = (p1 + p2) / 2;
   const za = normInv(1 - alpha / 2);
   const zb = normInv(power);
@@ -115,6 +119,7 @@ export const sampleSize = ({ baseline, mde, alpha = 0.05, power = 0.8 }) => {
 // planned split (1 degree of freedom for two arms).
 export const srmCheck = ({ nA, nB, splitA = 0.5 }) => {
   const total = nA + nB;
+  if (!(splitA > 0 && splitA < 1) || !(total > 0)) return { chi2: null, p: null, mismatch: false, observedA: total > 0 ? nA / total : null };
   const eA = total * splitA;
   const eB = total - eA;
   const chi2 = (nA - eA) ** 2 / eA + (nB - eB) ** 2 / eB;

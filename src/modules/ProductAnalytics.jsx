@@ -47,6 +47,7 @@ const MetricTree = ({ orders, currency }) => {
   const parts = prev.net ? attributeChange(cur, prev) : [];
   const series = monthlySeries(orders, last, 12);
   const money = (v) => formatCurrency(v, currency);
+  if (!cur.orders) return <EmptyState title="Needs at least one complete month of orders">The tree compares the last complete month with the month before it</EmptyState>;
   return (
     <div className="space-y-6">
       <Card className="p-6">
@@ -137,6 +138,14 @@ const FunnelView = ({ orders, currency }) => {
   });
   const seg = fields.includes(segment) ? segment : fields[0];
   const bySeg = seg ? funnelBySegment(orders, o => String(o.raw[seg] ?? ''), { maturityDays: maturity }) : [];
+  if (!steps[0].count) {
+    return (
+      <div className="space-y-4">
+        <Field label="Maturity window" className="w-80"><Select value={String(maturity)} onChange={v => setMaturity(Number(v))} options={[{ value: '0', label: 'Include every order' }, { value: '7', label: 'Older than 7 days' }, { value: '14', label: 'Older than 14 days' }, { value: '30', label: 'Older than 30 days' }]} /></Field>
+        <EmptyState title="No orders are old enough for this window">Choose a shorter maturity window</EmptyState>
+      </div>
+    );
+  }
   const worst = steps.slice(1).reduce((w, s) => (s.stepRate !== null && (!w || s.stepRate < w.stepRate) ? s : w), null);
   return (
     <div className="space-y-6">
@@ -278,11 +287,12 @@ const CustomersView = ({ orders, currency }) => {
   const [segFilter, setSegFilter] = useState('');
   const list = segFilter ? r.customers.filter(c => c.segment === segFilter) : r.customers;
   const s = r.summary;
+  if (!s) return <EmptyState title="No customers with orders that were not cancelled" />;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Predicted CLV" value={formatCurrency(s.clv, currency)} sub={`AOV × ${s.ordersPerYear.toFixed(1)} orders a year × ${margin}% margin × ${life} yrs`} info="clv" />
-        <KPICard title="Net AOV" value={formatCurrency(s.aov, currency)} info="aov" />
+        <KPICard title="Net revenue per order" value={formatCurrency(s.aov, currency)} sub="cancelled orders excluded" info="aov" />
         <KPICard title="Top 20% of customers" value={pct(s.top20Share)} sub="of net revenue" />
         <KPICard title="Champions" value={formatNumber((r.segments.find(x => x.name === 'Champions') || {}).customers || 0)} sub="best recency and frequency" info="rfm" />
       </div>
@@ -431,6 +441,7 @@ const ExperimentView = () => {
               <Field label="Significance %"><NumberInput value={plan.alpha} onChange={p('alpha')} min={0.1} max={20} /></Field>
               <Field label="Power %"><NumberInput value={plan.power} onChange={p('power')} min={50} max={99} /></Field>
             </div>
+            {!n && <p className="text-sm text-rose-700">The baseline and the lifted rate must both stay between 0 and 100%</p>}
             {n && (
               <div className="rounded-2xl bg-slate-900 text-white p-4">
                 <div className="text-3xl font-semibold tracking-tight">{formatNumber(n)} <span className="text-base font-normal text-slate-300">users per arm</span></div>
@@ -453,7 +464,7 @@ const ExperimentView = () => {
             </div>
             {w && (
               <>
-                <div className="text-sm text-slate-600 tabular-nums">Difference {w.diff.toFixed(2)} ({w.uplift === null ? '–' : `${(w.uplift * 100).toFixed(1)}%`}) · t = {w.t.toFixed(3)} · df = {w.df.toFixed(0)} · p value = {w.p < 0.0001 ? '< 0.0001' : w.p.toFixed(4)}</div>
+                <div className="text-sm text-slate-600 tabular-nums">Difference {w.diff.toFixed(2)} ({w.uplift === null ? 'n/a' : `${(w.uplift * 100).toFixed(1)}%`}){w.t !== null && ` · t = ${w.t.toFixed(3)} · df = ${w.df.toFixed(0)}`} · p value = {w.p < 0.0001 ? '< 0.0001' : w.p.toFixed(4)}</div>
                 <Verdict ok={w.significant}>{w.significant ? 'Significant at 5%' : 'Not significant at 5%\nHeavy tailed metrics like revenue often need more users, capping outliers or a bootstrap'}</Verdict>
               </>
             )}
@@ -528,7 +539,7 @@ const AnomalyView = ({ orders, currency, volumeHistory, lines }) => {
               { key: 'flag', label: 'Type', render: p => <StatusPill status={p.flag === 'spike' ? 'warning' : 'critical'}>{p.flag === 'spike' ? 'Spike' : 'Drop'}</StatusPill> },
               { key: 'value', label: 'Actual', align: 'right', format: fmt },
               { key: 'mean', label: 'Expected', align: 'right', format: fmt },
-              { key: 'z', label: 'z score', align: 'right', format: v => v.toFixed(2) },
+              { key: 'z', label: 'z score', align: 'right', format: v => (Number.isFinite(v) ? v.toFixed(2) : `${v > 0 ? '+' : '−'}∞`) },
             ]}
           />
         ) : <EmptyState title="No anomalies at this threshold" icon={<Activity size={36} className="mb-2 opacity-30" />}>Lower the threshold to see smaller swings</EmptyState>}
@@ -548,7 +559,7 @@ const ProductAnalytics = () => {
     date: dashboardConfig.dateCol || 'date',
     amount: dashboardConfig.valCol || 'amount',
     status: dashboardConfig.statusCol || 'status',
-    customer: columns.includes(customerCol) ? customerCol : columns.find(c => /customer|user|buyer|client/i.test(c)) || customerCol,
+    customer: columns.includes(customerCol) ? customerCol : columns.find(c => /customer|user|buyer|client/i.test(c)) || '',
   };
   const orders = useMemo(() => normalizeOrders(rawOrders, map),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,7 +582,7 @@ const ProductAnalytics = () => {
       {tab !== 'ab' && <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         <span className="inline-flex items-center gap-1"><Filter size={12} /> {formatNumber(orders.length)} orders</span>
         <span>· customer column</span>
-        <Select aria-label="Customer column" value={map.customer} onChange={setCustomerCol} options={columns} className="w-40 !py-1 text-xs" />
+        <Select aria-label="Customer column" value={map.customer} onChange={setCustomerCol} options={columns} placeholder="None" className="w-40 !py-1 text-xs" />
         <span>· date, amount and status follow the Sales Dashboard mapping</span>
       </div>}
 
@@ -581,7 +592,11 @@ const ProductAnalytics = () => {
           <Users size={36} className="mx-auto text-slate-300" />
           <h3 className="text-lg font-semibold">This view needs a customer column</h3>
           <p className="text-sm text-slate-500 max-w-lg mx-auto">Pick the column that identifies the buyer above, or load the demo orders, which now include <code className="bg-beige-100 px-1 rounded">customer_id</code></p>
-          <Button onClick={() => setOrders(seedOrders())}><RotateCcw size={14} /> Load demo orders with customers</Button>
+          <Button onClick={() => {
+            // Replacing is destructive for uploaded orders, so ask first.
+            if (window.confirm('Replace the current orders table with the demo orders?\nDownload a backup in Settings first if you need your data')) setOrders(seedOrders());
+          }}
+          ><RotateCcw size={14} /> Replace with demo orders</Button>
         </Card>
       ) : (
         <>

@@ -36,11 +36,12 @@ export const StatusPill = ({ status = 'info', children }) => {
   return <Badge type={meta.type}><meta.Icon size={12} aria-hidden="true" />{children}</Badge>;
 };
 
-export const PageHeader = ({ title, subtitle, actions }) => (
+export const PageHeader = ({ title, subtitle, actions, hideTitle = false }) => (
   <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
     <div>
-      {/* The shell shows the screen name as the page title, so this one is a section heading. */}
-      <h2 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h2>
+      {/* The shell shows the screen name as the big page title, so only show
+          this title when it adds something (for example "Variable Cost Budget vs OP"). */}
+      <h2 className={hideTitle ? 'sr-only' : 'text-xl font-semibold tracking-tight text-slate-900'}>{title}</h2>
       {subtitle && <p className="text-[15px] text-slate-500 mt-1 max-w-3xl leading-relaxed"><Prose text={subtitle} /></p>}
     </div>
     {actions && <div className="flex flex-wrap gap-2 items-center">{actions}</div>}

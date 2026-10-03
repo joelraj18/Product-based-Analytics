@@ -81,7 +81,7 @@ const BudgetPlanner = () => {
   })), `variable_cost_budget_${today()}.csv`);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
         title="Variable Cost Budget vs OP"
         subtitle="Cost of the headcount plan by month, covering in house labour, vendor billing per unit, overtime and hiring, compared with the OP1 annual plan and OP2 mid year refresh targets"

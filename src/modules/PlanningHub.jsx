@@ -83,8 +83,9 @@ const PlanningHub = ({ onNavigate }) => {
   if (!stats) return <Card className="p-8 text-slate-500">No plan available yet, so load volume history in Demand Forecast</Card>;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <PageHeader
+        hideTitle
         title="Planning Hub"
         subtitle="Readiness across every program and site: demand, required vs planned headcount, hiring, variable cost vs OP and open risks"
         actions={<Button variant="success" onClick={exportPack}><Download size={16} /> Export weekly plan</Button>}

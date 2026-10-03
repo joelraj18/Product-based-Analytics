@@ -158,3 +158,39 @@ describe('anomalies', () => {
     expect(w.map(x => x.value)).toEqual([5, 0, 0, 7]);
   });
 });
+
+describe('audit edge cases', () => {
+  test('status words that contain "deliver" are not counted as delivered', () => {
+    expect(statusBucket('Out for delivery')).toBe('shipped');
+    expect(statusBucket('Undelivered')).toBe('pending');
+    expect(statusBucket('In transit')).toBe('shipped');
+    expect(statusBucket('Delivery failed')).toBe('cancelled');
+  });
+  test('a brand new customer does not get an inflated CLV', () => {
+    const r = buildRfm(orders);
+    const newest = [...r.customers].sort((a, b) => a.recency_days - b.recency_days).find(c => c.orders === 1);
+    // One order last week must not imply dozens of orders a year.
+    expect(newest.clv).toBeLessThan(r.summary.clv * 3);
+  });
+  test('statistics guard impossible inputs', () => {
+    expect(sampleSize({ baseline: 0.6, mde: 1 })).toBeNull(); // 120% is not a rate
+    expect(sampleSize({ baseline: 0, mde: 0.1 })).toBeNull();
+    expect(srmCheck({ nA: 10, nB: 10, splitA: 0 }).mismatch).toBe(false);
+    const flat = welchTest({ meanA: 5, sdA: 0, nA: 10, meanB: 5, sdB: 0, nB: 10 });
+    expect(flat.p).toBe(1);
+    expect(flat.significant).toBe(false);
+    expect(Number.isNaN(proportionTest({ nA: 100, xA: 0, nB: 100, xB: 0 }).p)).toBe(false);
+  });
+  test('a jump from a flat baseline is flagged', () => {
+    const s = [0, 0, 0, 0, 0, 0, 500].map((value, i) => ({ key: String(i), value }));
+    expect(detectAnomalies(s)[6].flag).toBe('spike');
+    expect(detectAnomalies(s.slice(0, 6)).some(p => p.flag)).toBe(false);
+  });
+  test('empty and tiny inputs do not crash', () => {
+    expect(buildFunnel([])[0].count).toBe(0);
+    expect(buildCohorts([]).cohorts).toEqual([]);
+    expect(buildRfm([]).summary).toBeNull();
+    expect(weeklyTotals([], o => o.amount)).toEqual([]);
+    expect(lastCompleteMonth([])).toBeNull();
+  });
+});

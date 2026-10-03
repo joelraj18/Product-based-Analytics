@@ -8,7 +8,9 @@ export const detectAnomalies = (series, { window = 8, threshold = 2.5, minHistor
   if (hist.length < minHistory) return { ...p, mean: null, sd: null, z: null, flag: null };
   const mean = hist.reduce((s, v) => s + v, 0) / hist.length;
   const sd = Math.sqrt(hist.reduce((s, v) => s + (v - mean) ** 2, 0) / (hist.length - 1));
-  const z = sd > 0 ? (p.value - mean) / sd : 0;
+  // A flat history (for example all zeros) has no spread: any change from it is
+  // unusual, so it gets an infinite score instead of being ignored.
+  const z = sd > 0 ? (p.value - mean) / sd : p.value === mean ? 0 : Math.sign(p.value - mean) * Infinity;
   return { ...p, mean, sd, z, flag: Math.abs(z) >= threshold ? (z > 0 ? 'spike' : 'drop') : null, low: mean - threshold * sd, high: mean + threshold * sd };
 });
 

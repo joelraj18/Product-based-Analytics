@@ -9,9 +9,11 @@ export const DEFAULT_MAP = { date: 'date', amount: 'amount', status: 'status', c
 export const statusBucket = (s) => {
   const v = String(s ?? '').toLowerCase();
   if (/cancel|void|fail/.test(v)) return 'cancelled';
-  if (/return|refund|rto/.test(v)) return 'returned';
+  if (/return|refund|\brto\b/.test(v)) return 'returned';
+  // Check "out for delivery" and "undelivered" before "delivered".
+  if (/out for|transit|ship|dispatch/.test(v)) return 'shipped';
+  if (/undeliver|not deliver/.test(v)) return 'pending';
   if (/deliver|complete|done|fulfil/.test(v)) return 'delivered';
-  if (/ship|transit|dispatch|out for/.test(v)) return 'shipped';
   return 'pending';
 };
 

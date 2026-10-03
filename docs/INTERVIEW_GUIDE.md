@@ -70,7 +70,23 @@ Six tabs, explained in section 4: Metric tree, Funnel, Cohorts & retention, RFM 
 - **Glossary.** Ten new terms: AOV, North Star, cohort, retention, RFM, CLV, p-value, MDE, SRM, z-score. They appear as ⓘ tips.
 - **Excel Lab.** The orders sheet now has column `I customer_id`. One exercise moved its input cell from `I2` to `K2`.
 
-### 3.5 Earlier rounds (for "what else did you build?")
+### 3.5 Audit round (after the redesign)
+A full pass over every screen at desktop and phone width (390px), plus stress tests: an empty orders table, an upload with no customer or status column, and impossible A/B inputs. There were no crashes, console errors or sideways overflow. Fixes made:
+
+| Area | Problem | Fix |
+|---|---|---|
+| Status mapping | "Out for delivery" and "Undelivered" were counted as **delivered**, because the text contains "deliver" | Check transit and "undelivered" first (tested) |
+| CLV | A one-order customer from last week got a CLV many times the average (pace = 1 order ÷ 1 week) | Shrink each customer's pace toward the average (tested) |
+| A/B planner | A baseline × lift above 100% produced `NaN` users | Validate that both rates stay between 0 and 100%, and say so on screen |
+| Welch t-test | Zero standard deviation in both arms gave `df = NaN` | Handle the no-spread case explicitly |
+| SRM check | A planned split of 0% or 100% divided by zero | Guarded |
+| Anomalies | A jump from a flat history (e.g. all zeros, then 500) was **not** flagged, because sd = 0 gave z = 0 | Treat any change from a flat baseline as unusual (z = ±∞) |
+| Empty states | Metric tree, funnel (window too strict) and RFM had no message for "no data" | Clear empty states |
+| Data safety | "Load demo orders" silently replaced an uploaded orders table | Renamed to "Replace with demo orders" and it now asks for confirmation |
+| Customer picker | With no customer column, the picker displayed "date" as if selected | Shows "None" |
+| UI | Duplicate page titles (shell title + section title), a dark navy hero on the beige theme, centred pages misaligned with their titles on wide screens, the Excel sheet opening scrolled sideways | Titles that repeat the page name are hidden from view (screen readers still get them); beige hero; left-aligned widths; the sheet opens at column A |
+
+### 3.6 Earlier rounds (for "what else did you build?")
 - Full audit and fixes: React version crash, SQL engine, CSV parser, zero-as-missing bugs, hiring cost understated by ₹38 lakh, and more. See `FINDINGS.md`.
 - Upload center (CSV/Excel), schemas with exact column names, Start Here guide, and help tips.
 - **SQL Lab:**
@@ -176,7 +192,7 @@ This is an **identity**: the four drivers multiply back to net revenue exactly, 
 CLV = AOV × orders per customer per year × gross margin × expected lifespan (years)
 ```
 - Margin and lifespan are editable.
-- Each customer's CLV uses their own AOV and order pace.
+- Each customer's CLV uses their own AOV and order pace. The pace is **shrunk toward the average** with six months of "prior" history: `pace = (orders + avg rate × 0.5) / (tenure in years + 0.5)`. Without this, a customer whose only order was last week would look like they order 50 times a year. This is the same idea as Bayesian smoothing or a credibility weight.
 
 **Pareto:** the top 20% of customers bring about **69%** of net revenue. Champions alone (32 customers) bring 43%.
 
