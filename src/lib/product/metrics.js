@@ -5,10 +5,34 @@
 //   keep rate   = net revenue ÷ gross revenue (share not lost to cancels and returns)
 import { isNet, addMonths } from './orders';
 
+// Orders grouped by month and each customer's first month, built once per
+// orders array: monthStats runs a dozen times per screen, and rescanning
+// 100,000 orders each time adds up.
+const indexes = new WeakMap();
+const indexOf = (orders) => {
+  let ix = indexes.get(orders);
+  if (!ix) {
+    const byMonth = new Map();
+    const firstMonth = new Map();
+    orders.forEach(o => {
+      if (!byMonth.has(o.month)) byMonth.set(o.month, []);
+      byMonth.get(o.month).push(o);
+      if (o.customer) {
+        const f = firstMonth.get(o.customer);
+        if (f === undefined || o.month < f) firstMonth.set(o.customer, o.month);
+      }
+    });
+    ix = { byMonth, firstMonth };
+    indexes.set(orders, ix);
+  }
+  return ix;
+};
+
 export const monthStats = (orders, month) => {
-  const rows = orders.filter(o => o.month === month);
-  const seenBefore = new Set(orders.filter(o => o.month < month && o.customer).map(o => o.customer));
+  const { byMonth, firstMonth } = indexOf(orders);
+  const rows = byMonth.get(month) || [];
   const customers = new Set(rows.filter(o => o.customer).map(o => o.customer));
+  const seenBefore = { has: (c) => firstMonth.get(c) < month };
   const gross = rows.reduce((s, o) => s + o.amount, 0);
   const net = rows.filter(isNet).reduce((s, o) => s + o.amount, 0);
   const count = (b) => rows.filter(o => o.bucket === b).length;

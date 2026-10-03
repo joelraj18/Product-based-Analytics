@@ -6,7 +6,7 @@ import { Card, Button, Field, Select, TextInput, KPICard, DataTable, PageHeader,
 import { useWorkspace } from '../state/workspace';
 import { columnsOf } from '../lib/csv';
 import {
-  toNumber, isMissing, mean, median, mode, skewness, describeSkew, iqrFences, numericValues,
+  toNumber, isMissing, mean, median, mode, skewness, describeSkew, iqrFences, numericValues, minOf, maxOf,
 } from '../lib/stats';
 import { parseDate, isoDate } from '../lib/dates';
 import { formatNumber } from '../lib/format';
@@ -32,8 +32,8 @@ const profileColumn = (rows, col) => {
     missing_pct: rows.length ? (100 * missing) / rows.length : 0,
     unique: new Set(present.map(String)).size,
     non_numeric: type === 'numeric' ? present.length - nums.length : 0,
-    min: type === 'numeric' && nums.length ? Math.min(...nums) : '',
-    max: type === 'numeric' && nums.length ? Math.max(...nums) : '',
+    min: type === 'numeric' && nums.length ? minOf(nums) : '',
+    max: type === 'numeric' && nums.length ? maxOf(nums) : '',
     mean: type === 'numeric' && nums.length ? mean(nums) : '',
   };
 };
@@ -73,7 +73,9 @@ const DataCleaning = () => {
   const health = totalCells ? Math.round(100 * (1 - missingCells / totalCells)) : 100;
 
   const apply = (next, message) => {
-    setUndoStack(s => [...s.slice(-4), data]);
+    // Three steps of undo: each step keeps a full copy of the table, which
+    // adds up quickly with 100,000 rows.
+    setUndoStack(s => [...s.slice(-2), data]);
     setOrders(next);
     notify(message);
   };
@@ -88,13 +90,12 @@ const DataCleaning = () => {
   const trimAll = () => {
     let changed = 0;
     const next = data.map(row => {
-      const out = {};
+      let out = null;
       Object.entries(row).forEach(([k, v]) => {
         const t = typeof v === 'string' ? v.trim().replace(/\s{2,}/g, ' ') : v;
-        if (t !== v) changed++;
-        out[k] = t;
+        if (t !== v) { changed++; out = out || { ...row }; out[k] = t; }
       });
-      return out;
+      return out || row;
     });
     apply(next, `Trimmed whitespace in ${changed} cell(s)`);
   };
@@ -193,7 +194,7 @@ const DataCleaning = () => {
   const dedupe = () => {
     const seen = new Set();
     const next = data.filter(row => {
-      const key = dedupeCol ? String(row[dedupeCol] ?? '') : JSON.stringify(columns.map(c => row[c]));
+      const key = dedupeCol ? String(row[dedupeCol] ?? '') : columns.map(c => `${typeof row[c]}:${row[c] ?? ''}`).join('\u0001');
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -231,7 +232,7 @@ const DataCleaning = () => {
     <div className="space-y-6 pb-10">
       <PageHeader
         title="Data Cleaning & Profiling"
-        subtitle="Profile the orders dataset and fix quality issues before analysis, and undo any of the last 5 operations"
+        subtitle="Profile the orders dataset and fix quality issues before analysis, and undo any of the last 3 operations"
         actions={<Button variant="secondary" onClick={undo} disabled={!undoStack.length}><Undo2 size={16} /> Undo ({undoStack.length})</Button>}
       />
 

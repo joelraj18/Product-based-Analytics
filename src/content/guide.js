@@ -167,7 +167,7 @@ export const HELP = {
   },
   cleaning: {
     purpose: 'Find and fix data quality problems in the orders table before analysing it',
-    steps: ['The column profile shows missing values and types', 'Fill blanks, cap outliers, remove duplicates, rename or drop columns, and Undo reverts the last 5 steps'],
+    steps: ['The column profile shows missing values and types', 'Fill blanks, cap outliers, remove duplicates, rename or drop columns, and Undo reverts the last 3 steps'],
     feeds: ['orders'],
   },
   projects: {

@@ -49,7 +49,7 @@ describe('Excel practice content', () => {
   test('a wrong answer fails with a reason', () => {
     const e = EXCEL_PRACTICE.find(x => x.id === 'e11');
     const sheet = sheetFromRows(tables.orders);
-    sheet.setRaw(1, 9, '=SUM(C:C)');
+    sheet.setRaw(1, 13, '=SUM(C:C)');
     const r = gradeFormula(sheet, e, tables.orders.length + 1);
     expect(r.ok).toBe(false);
     expect(r.reason).toMatch(/not the expected/);

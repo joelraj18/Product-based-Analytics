@@ -1,4 +1,4 @@
-import { seedOrders } from '../../../data/seed';
+import { seedOrders, demoOrders, ORDERS_TARGET, ORDER_COLUMNS } from '../../../data/seed';
 import { normalizeOrders, statusBucket, lastCompleteMonth, monthDiff, addMonths, hasCustomers } from '../orders';
 import { monthStats, attributeChange, monthlySeries } from '../metrics';
 import { buildFunnel, funnelBySegment } from '../funnel';
@@ -18,21 +18,39 @@ describe('demo orders', () => {
     expect(r.repeatRate).toBeGreaterThan(0.3);
     expect(hasCustomers(orders)).toBe(true);
   });
-  test('the sample runs from January 2024 to December 2026 at scale', () => {
-    expect(raw.length).toBeGreaterThan(10000);
-    expect(raw[0].date).toBe('2024-01-01');
-    expect(raw[raw.length - 1].date.slice(0, 7)).toBe('2026-12');
-    expect(Object.keys(raw[0])).toEqual(['id', 'date', 'amount', 'units', 'status', 'region', 'category', 'fulfillment_center', 'customer_id']);
+  test('the sample is exactly 100,000 orders from December 2024 to December 2026', () => {
+    expect(raw).toHaveLength(ORDERS_TARGET);
+    expect(ORDERS_TARGET).toBe(100000);
+    expect(raw[0].date).toBe('2024-12-01');
+    expect(raw[raw.length - 1].date).toBe('2026-12-31');
+    expect(Object.keys(raw[0])).toEqual(ORDER_COLUMNS);
+    expect(ORDER_COLUMNS).toEqual(['id', 'date', 'amount', 'units', 'status', 'region', 'category', 'fulfillment_center', 'customer_id', 'channel', 'payment_method', 'discount', 'delivery_days']);
     expect(new Set(raw.map(o => o.id)).size).toBe(raw.length);
     // Year over year growth and a festive peak, so the dashboard has a story.
     const yr = (y) => raw.filter(o => o.date.startsWith(y)).reduce((s, o) => s + o.amount, 0);
-    expect(yr('2025')).toBeGreaterThan(yr('2024'));
-    expect(yr('2026')).toBeGreaterThan(yr('2025'));
+    expect(yr('2026')).toBeGreaterThan(yr('2025') * 1.2);
     const month = (m) => raw.filter(o => o.date.startsWith(m)).length;
     expect(month('2025-11')).toBeGreaterThan(month('2025-02') * 1.4);
+    expect(month('2026-10')).toBeGreaterThan(month('2025-10'));
   });
-  test('the sample is the same on every load', () => {
+  test('the extra columns are consistent', () => {
+    raw.forEach(o => {
+      const done = o.status === 'Delivered' || o.status === 'Returned';
+      if (done !== Number.isInteger(o.delivery_days)) throw new Error(`delivery_days on ${o.id}`);
+      if (!(o.discount >= 0 && o.amount > 0)) throw new Error(`amounts on ${o.id}`);
+    });
+    expect(new Set(raw.map(o => o.channel))).toEqual(new Set(['App', 'Web', 'Marketplace']));
+    expect(new Set(raw.map(o => o.payment_method))).toEqual(new Set(['UPI', 'Card', 'Wallet', 'COD']));
+    // Cash on delivery orders are cancelled more often, a real pattern to find.
+    const cancelRate = (p) => { const r = raw.filter(o => o.payment_method === p); return r.filter(o => o.status === 'Cancelled').length / r.length; };
+    expect(cancelRate('COD')).toBeGreaterThan(cancelRate('UPI') * 1.4);
+    const customers = new Set(raw.map(o => o.customer_id)).size;
+    expect(customers).toBeGreaterThan(25000);
+    expect(customers).toBeLessThan(35000);
+  });
+  test('the sample is the same on every load and built once per page', () => {
     expect(seedOrders().slice(0, 50)).toEqual(raw.slice(0, 50));
+    expect(demoOrders()).toBe(demoOrders());
   });
 });
 

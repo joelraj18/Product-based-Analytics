@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Table, Download, Plus, Trash2, Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Columns } from 'lucide-react';
-import { Card, Button, TextInput, EmptyState, useToast } from '../components/ui';
+import { Card, Button, TextInput, EmptyState, useToast, compareCells } from '../components/ui';
 import { useWorkspace } from '../state/workspace';
 import { columnsOf, downloadCSV, today } from '../lib/csv';
 import SchemaImportButton from '../components/SchemaImportButton';
@@ -24,21 +24,28 @@ const DataGrid = () => {
   const [editing, setEditing] = useState(null); // { i, col, value }
   const [selected, setSelected] = useState(() => new Set());
   const columns = useMemo(() => columnsOf(data), [data]);
+  // Search runs 200 ms after the last keystroke, over one lower case text
+  // per row built the first time you search, so typing stays smooth on
+  // 100,000 rows.
+  const [query, setQuery] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(search.trim().toLowerCase()), 200);
+    return () => clearTimeout(t);
+  }, [search]);
+  const searching = query !== '';
+  const haystack = useMemo(() => (searching ? data.map(r => columns.map(c => String(r[c] ?? '')).join('\u0001').toLowerCase()) : null), [data, columns, searching]);
 
   const view = useMemo(() => {
     let rows = data.map((r, i) => ({ r, i }));
-    const q = search.trim().toLowerCase();
-    if (q) rows = rows.filter(({ r }) => columns.some(c => String(r[c] ?? '').toLowerCase().includes(q)));
+    if (query && haystack) rows = rows.filter(({ i }) => haystack[i].includes(query));
     if (sort) {
       rows = [...rows].sort((a, b) => {
-        const x = a.r[sort.col];
-        const y = b.r[sort.col];
-        const cmp = typeof x === 'number' && typeof y === 'number' ? x - y : String(x ?? '').localeCompare(String(y ?? ''), undefined, { numeric: true });
+        const cmp = compareCells(a.r[sort.col], b.r[sort.col]);
         return sort.dir === 'asc' ? cmp : -cmp;
       });
     }
     return rows;
-  }, [data, columns, search, sort]);
+  }, [data, haystack, query, sort]);
 
   const totalPages = Math.max(1, Math.ceil(view.length / ROWS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
@@ -148,7 +155,7 @@ const DataGrid = () => {
 
       <div className="bg-slate-100 border-t p-2 text-xs flex justify-between items-center">
         <span className="font-medium text-slate-500">
-          {view.length === data.length ? `${data.length} records` : `${view.length} of ${data.length} records`} · double click a cell to edit
+          {view.length === data.length ? `${data.length.toLocaleString('en-IN')} records` : `${view.length.toLocaleString('en-IN')} of ${data.length.toLocaleString('en-IN')} records`} · double click a cell to edit
         </span>
         <div className="flex gap-2 items-center">
           <button type="button" aria-label="Previous page" disabled={safePage === 1} onClick={() => setPage(safePage - 1)} className="p-1 hover:bg-slate-200 rounded disabled:opacity-40"><ChevronLeft size={14} /></button>

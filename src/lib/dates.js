@@ -1,9 +1,14 @@
 const DAY = 86400000;
 
+// Years outside 1900 to 2199 are treated as unreadable: JavaScript reads
+// text like "77777" as the year 77777, and a weekly chart from 2024 to that
+// year would have millions of points.
 export const parseDate = (s) => {
   if (s instanceof Date) return s;
   const d = new Date(typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00Z` : s);
-  return Number.isNaN(d.getTime()) ? null : d;
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getUTCFullYear();
+  return y < 1900 || y > 2199 ? null : d;
 };
 
 export const isoDate = (d) => parseDate(d).toISOString().slice(0, 10);

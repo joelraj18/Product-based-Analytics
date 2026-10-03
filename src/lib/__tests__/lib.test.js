@@ -2,8 +2,8 @@ import { parseCSV, toCSV } from '../csv';
 import { requiredAgents, serviceLevel, erlangC } from '../erlang';
 import { requiredFTE, simulatePlan, recommendHires, cohortProductivity, withDefaults } from '../capacity';
 import { holtWinters, seasonalNaive, backtest, applyEvents } from '../forecast';
-import { mape, wape, bias, toNumber, isMissing, median } from '../stats';
-import { weekStart } from '../dates';
+import { mape, wape, bias, toNumber, isMissing, median, minOf, maxOf } from '../stats';
+import { weekStart, parseDate, isoDate } from '../dates';
 import { formatCurrency } from '../format';
 import { buildPlan, weeklySeries } from '../planEngine';
 import { weekCost } from '../budget';
@@ -160,5 +160,18 @@ describe('plan engine on seed data', () => {
     const base = buildPlan(args).totals;
     const up = buildPlan({ ...args, scenario: { volumePct: 10 } }).totals;
     expect(up[0].required / base[0].required).toBeCloseTo(1.1, 1);
+  });
+});
+
+describe('large tables', () => {
+  test('minOf and maxOf handle more values than a spread allows', () => {
+    const big = Array.from({ length: 300000 }, (_, i) => (i * 7919) % 300001);
+    expect(minOf(big)).toBe(0);
+    expect(maxOf(big)).toBe(Math.max(...big.slice(0, 1000), ...big.slice(1000).filter(v => v > 299990)));
+    expect(minOf([])).toBe(Infinity);
+  });
+  test('a typo such as 77777 is not read as a date thousands of years away', () => {
+    expect(parseDate('77777')).toBeNull();
+    expect(isoDate(parseDate('2026-12-31'))).toBe('2026-12-31');
   });
 });

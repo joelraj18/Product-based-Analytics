@@ -89,14 +89,33 @@ export const hoistScalarSubqueries = (sql, run) => {
   return out;
 };
 
-// Runs SQL against a fresh in-memory database built from `tables` so queries
-// can never change app data. Returns rows (array of objects).
-export const runSql = (sql, tables) => {
+const buildDb = (tables) => {
   const db = new alasql.Database();
   Object.entries(tables).forEach(([name, rows]) => {
     db.exec(`CREATE TABLE \`${name}\``);
     db.tables[name].data = (rows || []).map(r => ({ ...r }));
   });
+  return db;
+};
+
+// Statements that can change a table. Those run on a throwaway copy; read
+// only queries reuse one cached copy, so a query on 100,000 orders does not
+// copy every table first.
+const WRITES = /\b(INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|INTO|ATTACH|USE)\b/i;
+let cached = null; // { tables: [[name, rows]], db }
+const sameTables = (entries) => cached && cached.tables.length === entries.length
+  && entries.every(([n, r], i) => cached.tables[i][0] === n && cached.tables[i][1] === r);
+const readDb = (tables) => {
+  const entries = Object.entries(tables);
+  if (!sameTables(entries)) cached = { tables: entries, db: buildDb(tables) };
+  return cached.db;
+};
+
+// Runs SQL against an in-memory copy of `tables`, so queries can never
+// change app data. Returns rows (array of objects).
+export const runSql = (sql, tables) => {
+  const code = String(sql).replace(/'(?:[^']|'')*'|"(?:[^"]|"")*"/g, "''");
+  const db = WRITES.test(code) ? buildDb(tables) : readDb(tables);
   let res;
   try {
     const ready = hoistScalarSubqueries(rewriteMinMax(sql), (sub) => db.exec(sub));

@@ -2,7 +2,7 @@
 
 How to present WorkX in a data analyst interview at a product company: what changed, how each feature works, the logic behind it, and the questions you are likely to get.
 
-> The demo data is anchored to the current week, so the exact numbers below will shift a little when you open the app on a different day. The shape of the results stays the same.
+> The orders sample is fixed (100,000 orders, December 2024 to December 2026), so the product analytics numbers below match the app exactly. The workforce planning data is anchored to the current week, so those numbers shift a little from day to day.
 
 ---
 
@@ -11,7 +11,7 @@ How to present WorkX in a data analyst interview at a product company: what chan
 > "WorkX is a browser-based analytics and planning suite for a product company. It covers two jobs.
 > **Product analytics:** what drives revenue, where orders leak, whether customers come back, who the best customers are, and whether an experiment worked.
 > **Workforce planning:** forecasting contact volume, turning it into headcount and cost, and tracking it against budget.
-> Everything runs client-side in React. The maths lives in small, pure JavaScript modules covered by about 250 unit tests. Users can upload their own CSV or Excel files and query them with SQL or Excel-style formulas. I built the statistics myself (z-test, Welch t-test, sample size, Erlang C, Holt-Winters) so I can explain every number on screen."
+> Everything runs client-side in React. The maths lives in small, pure JavaScript modules covered by about 280 unit tests. Users can upload their own CSV or Excel files and query them with SQL or Excel-style formulas. I built the statistics myself (z-test, Welch t-test, sample size, Erlang C, Holt-Winters) so I can explain every number on screen."
 
 **Three things to emphasise:**
 1. **Metric definitions are explicit.** There's a KPI dictionary, a North Star, guardrails, and a metric tree that multiplies back exactly.
@@ -30,10 +30,10 @@ How to present WorkX in a data analyst interview at a product company: what chan
 |---|---|---|
 | UI | React 19, Tailwind, Recharts | Fast to build; charts are declarative |
 | Logic | `src/lib/**`: pure functions, no React | Easy to unit test, reusable from UI and scripts |
-| Data | Seeded demo data, plus browser storage (localStorage for the workspace, IndexedDB for uploads) | No server needed; data never leaves the browser |
+| Data | A 100,000-order sample simulated from a fixed seed on every visit (never stored), plus browser storage: localStorage for small settings, IndexedDB for your own orders and uploads | No server needed; data never leaves the browser, and no 5 MB storage cap |
 | SQL | alasql (in-browser SQL engine) | Real SQL with JOINs, CTEs and window functions on any table |
 | Excel | Formula engine written for this project (parser, evaluator, 115 functions, dynamic arrays) | HyperFormula is GPL-licensed, so I wrote a small one |
-| Tests | Jest + Testing Library, a prose style test, and Playwright checks | About 250 tests; the build is warning-free |
+| Tests | Jest + Testing Library, a prose style test, and Playwright checks | About 280 tests; the build is warning-free |
 
 **Design choice to mention:** the product analytics screens read the **same orders table** as the Sales Dashboard, through a column mapping. Any uploaded orders file with a date, amount, status and customer column works without code changes.
 
@@ -41,7 +41,47 @@ How to present WorkX in a data analyst interview at a product company: what chan
 
 ## 3. What changed in this round
 
-### 3.1 UI: Apple-style beige theme
+### 3.1 Latest round: 100,000 simulated orders, and every screen fast at that size
+**The ask:** a new user, or anyone who hasn't uploaded data, should see a full industry-scale sample in the Sales Dashboard, Product Analytics, SQL Lab, Excel Lab, Data Grid and Data Cleaning.
+
+**The sample:** exactly **100,000 orders from 1 December 2024 to 31 December 2026**, placed by **28,880 customers**.
+- Same day-by-day model as before (section 3.3), but scaled so the total is exactly 100,000. A first pass builds each day's demand shape; a second pass rounds the *cumulative* total, so the per-day counts add up exactly.
+- **Four new columns** for SQL and Excel practice:
+
+| Column | What it holds | Pattern you can find in it |
+|---|---|---|
+| `channel` | App, Web or Marketplace | The App grows from 40% to 55% of orders |
+| `payment_method` | UPI, Card, Wallet or COD | Cash on delivery is cancelled **11.5%** of the time vs **7.4%** for UPI |
+| `discount` | Rupees off the order (`amount` is already net of it) | 12–24% on sale days, a 5–10% coupon on about 3 in 10 other orders; **4.2%** overall |
+| `delivery_days` | Days to deliver; blank until delivered | East is slowest (4.1 days), South fastest (2.9); `FC-4` is the slow fulfillment centre |
+
+**Design decision 1: regenerate, don't store.** 100,000 rows is about 20 MB of JSON, and browsers cap localStorage at about 5 MB, so saving the sample would fail on every visit.
+- The sample is deterministic (seeded random numbers), so the app rebuilds it on load in about half a second and never saves it.
+- A small marker, `orders_source`, records whether the table is the demo or yours.
+- The moment you upload, edit or clean orders, the table becomes yours and is saved to **IndexedDB**, which has no 5 MB cap. Saves are debounced (one write 400 ms after the last edit).
+- Older browsers: an old demo found in localStorage is dropped; real user orders found there move to IndexedDB once.
+- *Interview line:* "The cheapest storage is none. If data can be recomputed deterministically, store the seed, not the rows."
+
+**Design decision 2: fix the algorithms, not the hardware.** Every screen was timed at 100,000 rows in a real browser. What broke and how it was fixed:
+
+| Where | Problem at 100k rows | Fix | Result |
+|---|---|---|---|
+| Excel engine | Cells stored in one map keyed by `"row,col"` strings: building 1.3M keys, and every range read went through the cache | Store raw cells **column by column** in arrays; plain values skip the cache | Load 1.6 s → 75 ms; `SUMIFS` over 100k rows about 5× faster |
+| `SUMIFS` / `COUNTIFS` | A new regular expression compiled for **every cell** tested | Compile once per criterion | 100k regex compiles → 1 |
+| `MIN`, `MAX`, pivots, Data Cleaning | `Math.max(...array)` spreads 100k arguments onto the call stack and can crash | Plain loops (`minOf` / `maxOf`) | Tested on 300k values |
+| SQL Lab | Every query copied every table, including 100k orders | Read-only queries reuse one cached copy; anything that writes (`INSERT`, `DELETE`, …) still gets a throwaway copy | App data still can't change (tested) |
+| Tables (RFM customers, dashboard drill-down) | 28,880 customers = 28,880 DOM rows | Built-in paging, 100 rows a page | Instant |
+| Data Grid | Search lower-cased 1.3M cells per keystroke; sorting called `localeCompare`, which builds a collator per call | Search waits 200 ms after typing and uses a per-row text index built once; sort uses one shared `Intl.Collator` | Smooth typing |
+| Metric tree | Each month's stats rescanned all orders and rebuilt a "seen before" set | One index of orders by month and each customer's first month | 14 full scans → 1 |
+| Data Cleaning | 5 undo snapshots of 100k rows | 3 snapshots; trimming copies only rows that change | Less memory |
+
+**A bug the scale testing found:** typing `77777` into a date cell was read by JavaScript as the year 77,777, so a weekly chart tried to draw about 4 million weeks and froze. Dates outside 1900–2199 are now treated as unreadable (tested).
+
+**Measured in a browser (production build):** first load 0.8 s, dashboard 0.9 s, each Product Analytics tab 0.3–0.4 s, SQL queries about 0.2 s, Excel Lab opens in 0.7 s. The Excel `=SUMIFS(C:C,F:F,"North")` and the SQL `SUM(amount) WHERE region = 'North'` both give **61,691,908**.
+
+**Practice content:** 6 new SQL exercises (110 in total) and 7 new Excel exercises and pivots (79 in total) use the new columns. Two old thresholds ("more than 80 orders") were raised to suit 100k rows.
+
+### 3.2 UI: Apple-style beige theme
 - **Warm neutrals and Apple blue.** Tailwind's `slate` palette was remapped to warm greys; `blue` is now Apple's `#0071e3`; and a `beige` palette was sampled from the natural titanium phone.
   - **Why centrally:** about 360 class names change look at once, with no risk of missing a screen.
 - **Shell:**
@@ -56,38 +96,38 @@ How to present WorkX in a data analyst interview at a product company: what chan
   - sentence-case form labels
 - **Charts:** the first series is Apple blue. The palette was re-validated for colour-blind separation (all checks pass).
 
-### 3.2 Data: an industry-scale order sample with customers
-- **Size and span:** 12,009 orders from **1 January 2024 to 31 December 2026**, placed by about 3,500 customers. It's a made-up but realistic e-commerce sample, deterministic so it is identical on every load.
+### 3.3 Data: an industry-scale order sample with customers
+- **Size and span:** now exactly 100,000 orders from **1 December 2024 to 31 December 2026** (section 3.1); the earlier version had 12,009 orders from January 2024. It's a made-up but realistic e-commerce sample, deterministic so it is identical on every load.
 - **How daily volume is generated:** `orders per day = base × 1.27^years × month season × weekday × sale lift × noise`
-  - **Growth:** 27% a year. Revenue goes ₹73L (2024) → ₹1.0Cr (2025) → ₹1.45Cr (2026).
+  - **Growth:** 27% a year. Revenue goes ₹9.7Cr (2025) → ₹13.9Cr (2026), plus ₹76L in December 2024.
   - **Seasonality:** a January–February dip, and a festive peak in October–November (about 1.4×).
   - **Weekday rhythm:** busiest on weekends (Saturday 1.18×).
-  - **Sale events:** about 1.5–2.3× volume, with prices about 18% lower.
+  - **Sale events:** about 1.5–2.3× volume, with 12–24% discounts.
   - **Mix shift:** Electronics and the South region grow faster, so the mix changes over time.
   - **Statuses:** orders in the last days are still in flight (Pending or Shipped); older orders show a realistic small backlog. Apparel returns more often, and sale days bring more cancellations.
-- **Customers:** walking forward in time, about 30% of orders acquire a new customer. The rest go to a returning customer, picked from a random handful weighted by `loyalty × e^(−days since last order / 90)`. That gives loyal repeat buyers *and* churners: 53% repeat, month-1 retention ≈ 25%.
-- **Older browsers:** a browser that still holds the original 400-order demo gets the new sample automatically. Orders a user uploaded or edited are never replaced.
+- **Customers:** walking forward in time, about 30% of orders acquire a new customer. The rest go to a returning customer, picked from a random handful weighted by `loyalty × e^(−days since last order / 90)`. That gives loyal repeat buyers *and* churners: 54% repeat, month-1 retention ≈ 27%.
+- **Older browsers:** a browser that still holds an older demo gets the new sample automatically. Orders a user uploaded or edited are never replaced.
 
-### 3.3 New screen: Product Analytics
+### 3.4 New screen: Product Analytics
 Six tabs, explained in section 4: Metric tree, Funnel, Cohorts & retention, RFM & CLV, A/B testing, Anomalies.
 
-### 3.4 Refinements to existing screens
+### 3.5 Refinements to existing screens
 - **Sales Dashboard, month comparison.** The latest month is usually incomplete, and comparing it with a full month showed false drops (e.g. −45%). The dashboard now compares **month to date vs the same days of last month**, and the label says so.
 - **Sales Dashboard, anomaly alerts.** A new strip shows weekly value against its expected band, with Spike/Drop pills and a link to the full analysis.
 - **Glossary.** Ten new terms: AOV, North Star, cohort, retention, RFM, CLV, p-value, MDE, SRM, z-score. They appear as ⓘ tips.
-- **Excel Lab.** The orders sheet now has column `I customer_id`. One exercise moved its input cell from `I2` to `K2`.
+- **Excel Lab.** The orders sheet now has columns `I customer_id` to `M delivery_days`, so the answer cells moved to column `N`.
 
-### 3.5 Latest round: data scale, A/B charts, schema popover
-- **Order sample** from 2024 to December 2026 at scale (section 3.2). The Sales Dashboard now shows three years of growth, seasonality and sale spikes.
+### 3.6 Latest round: data scale, A/B charts, schema popover
+- **Order sample** from 2024 to December 2026 at scale (section 3.3). The Sales Dashboard now shows three years of growth, seasonality and sale spikes.
 - **A/B testing charts:**
   - "Likely range of each conversion rate": two bell curves, one per arm. The less they overlap, the stronger the evidence.
   - A labelled confidence-interval chart for the difference, with a "No difference" line at zero. It's green when significant and grey when not. The continuous-metric test gets the same chart.
 - **Schema reference:** the button now sits outside the SQL editor. The diagram opens in a layer above the whole page, sized to the screen, so it's never cut off.
 - **Start Here banner:** a deeper sand than the page, espresso text and cream buttons, with no blue.
-- **Performance fix the bigger data exposed:** alasql re-runs a scalar subquery like `(SELECT AVG(amount) FROM orders)` once per outer row. On 12,000 orders that took about 35 seconds. SQL Lab now runs any subquery that doesn't depend on the outer query once and substitutes the value: 35s → under 0.5s, same answer (tested). Correlated subqueries still run per row, so the correlated exercise now uses the small `inventory` table, and its hint explains why.
+- **Performance fix the bigger data exposed:** alasql re-runs a scalar subquery like `(SELECT AVG(amount) FROM orders)` once per outer row. On 12,000 orders that took about 35 seconds (it would be far worse at 100,000). SQL Lab now runs any subquery that doesn't depend on the outer query once and substitutes the value: 35s → under 0.5s, same answer (tested). Correlated subqueries still run per row, so the correlated exercise now uses the small `inventory` table, and its hint explains why.
 - **Analytics fixes:** frequency bins in RFM; CLV based on repeat orders over exposure; anomaly weeks exclude a partial last week.
 
-### 3.6 Audit round (after the redesign)
+### 3.7 Audit round (after the redesign)
 A full pass over every screen at desktop and phone width (390px), plus stress tests: an empty orders table, an upload with no customer or status column, and impossible A/B inputs. There were no crashes, console errors or sideways overflow. Fixes made:
 
 | Area | Problem | Fix |
@@ -103,17 +143,17 @@ A full pass over every screen at desktop and phone width (390px), plus stress te
 | Customer picker | With no customer column, the picker displayed "date" as if selected | Shows "None" |
 | UI | Duplicate page titles (shell title + section title), a dark navy hero on the beige theme, centred pages misaligned with their titles on wide screens, the Excel sheet opening scrolled sideways | Titles that repeat the page name are hidden from view (screen readers still get them); beige hero; left-aligned widths; the sheet opens at column A |
 
-### 3.7 Earlier rounds (for "what else did you build?")
+### 3.8 Earlier rounds (for "what else did you build?")
 - Full audit and fixes: React version crash, SQL engine, CSV parser, zero-as-missing bugs, hiring cost understated by ₹38 lakh, and more. See `FINDINGS.md`.
 - Upload center (CSV/Excel), schemas with exact column names, Start Here guide, and help tips.
 - **SQL Lab:**
   - column previews
   - a visual schema diagram on hover
-  - **100 graded exercises**, Beginner → Analyst/Executive
+  - **110 graded exercises**, Beginner → Analyst/Executive
 - **Excel Lab:**
   - a live sheet with real formulas and dynamic arrays
   - a pivot builder
-  - 66 graded exercises
+  - 79 graded exercises
   - 32 VBA / Power Query / DAX lessons
   - a downloadable practice workbook
 
@@ -136,7 +176,7 @@ This is an **identity**: the four drivers multiply back to net revenue exactly, 
 **Attributing the change (log decomposition):**
 - Because the drivers multiply, `ln(NR₁/NR₀) = Σ ln(driverᵢ₁/driverᵢ₀)`.
 - Each driver gets `ln(ratioᵢ) ÷ ln(total ratio)` of the change. The parts add up to the total exactly, with no leftover "interaction" term.
-- **Demo example (Dec vs Nov 2026):** net revenue −₹51K (−3.3%). Fewer active customers −₹137K and lower frequency −₹36K, partly offset by a better keep rate +₹68K and higher AOV +₹53K.
+- **Demo example (Dec vs Nov 2026):** net revenue −₹21.1L (−14.2%) after the festive peak. Fewer active customers −₹19.9L and lower frequency −₹7.3L, partly offset by a better keep rate +₹6.9L; AOV barely moved (−₹0.9L).
 - **Story:** "After the festive peak, fewer customers came back in December. The ones who did spent more per order and returned less, which cushioned the drop."
 
 **Uses the last complete month,** so a half-finished month never looks like a collapse.
@@ -173,9 +213,9 @@ This is an **identity**: the four drivers multiply back to net revenue exactly, 
 **Retention curve:** the size-weighted average across cohorts **old enough** to have reached month k. Young cohorts would otherwise drag later months down.
 
 **Demo:**
-- M1 25%, M2 20%, M3 17%, M6 12%: steep early drop, then a loyal core that keeps buying
-- repeat purchase rate 53%
-- 3.2 orders per customer over three years
+- M1 27%, M2 22%, M3 19%, M6 14%: steep early drop, then a loyal core that keeps buying
+- repeat purchase rate 54%
+- 3.2 orders per customer over two years
 
 **Revenue view:** revenue per original cohort member by month. This is the building block for cohort-based LTV.
 
@@ -209,11 +249,11 @@ This is an **identity**: the four drivers multiply back to net revenue exactly, 
 CLV = AOV × repeat orders per year × gross margin × expected lifespan (years)
 repeat orders per year = Σ (orders − 1) ÷ Σ years each customer has been with us
 ```
-- **Why repeat orders over exposure:** counting each customer's first order would make every brand-new customer look like a heavy buyer. Dividing by the whole three-year span instead of each customer's own tenure would understate recent customers. Demo: about 1.7 repeat orders a year and CLV ≈ ₹3,800 at 30% margin over 3 years.
+- **Why repeat orders over exposure:** counting each customer's first order would make every brand-new customer look like a heavy buyer. Dividing by the whole two-year span instead of each customer's own tenure would understate recent customers. Demo: about 2.4 repeat orders a year and CLV ≈ ₹4,750 at 30% margin over 3 years.
 - Margin and lifespan are editable.
 - Each customer's CLV uses their own AOV and their own repeat pace, **shrunk toward the average** with six months of "prior" history: `pace = (orders − 1 + avg rate × 0.5) / (tenure in years + 0.5)`. A customer who just made a first order gets the average pace, not zero and not fifty a year. This is the same idea as Bayesian smoothing or a credibility weight.
 
-**Pareto:** the top 20% of customers bring about **63%** of net revenue. Champions alone (448 customers, 13%) bring 36%.
+**Pareto:** the top 20% of customers bring about **63%** of net revenue. Champions alone (3,845 customers, 13%) bring 36%.
 
 **Limits and better models to mention:**
 - **BG/NBD + Gamma-Gamma** (probabilistic "buy till you die"): handles churn uncertainty.
@@ -272,7 +312,7 @@ n per arm = [z_{1−α/2}·√(2p̄(1−p̄)) + z_{1−β}·√(p₁(1−p₁)+p
 
 - **The last week is left out when it's incomplete,** for the same reason as partial months.
 
-**Demo:** it flags the planted sale weeks on its own: early October festive sales (z ≈ 7.7 in 2025, 6.6 in 2026), late November, and the July mid-year sale. A good talking point: "the detector rediscovered the promo calendar, so I'd feed known events in as covariates to avoid alerting on planned spikes."
+**Demo:** it flags the planted sale weeks on its own: the early October festive sale (z ≈ 18.7 in 2025 and 8.0 in 2026), the July mid-year sale (z ≈ 4.3 and 4.1), and smaller early-summer and March bumps. A good talking point: "the detector rediscovered the promo calendar, so I'd feed known events in as covariates to avoid alerting on planned spikes."
 
 **Limits and upgrades to mention:**
 - seasonality-aware baselines (same weekday last N weeks, or STL decomposition)
@@ -365,6 +405,10 @@ n per arm = [z_{1−α/2}·√(2p̄(1−p̄)) + z_{1−β}·√(p₁(1−p₁)+p
     The decomposition is accounting, not causation. It says *which* driver moved, not *why*. Causal claims need experiments or quasi-experiments (difference-in-differences, synthetic control).
 25. **"What would you build next?"**
     See section 8.
+26. **"Your app has 100,000 rows in the browser. How did you keep it fast, and what would you do at 10 million?"**
+    I measured first: every screen was timed at 100k rows, and the slow parts were algorithmic: a regex compiled per cell, a string key per spreadsheet cell, a full table copy per SQL query, and a stack-overflowing `Math.max(...array)`. Fixing those gave 5–20× speedups without changing any answers (the tests compare results before and after). At 10 million rows I'd stop shipping raw rows to the browser: aggregate in a warehouse (BigQuery, Snowflake or DuckDB), send pre-aggregated tables, and run heavy work in a Web Worker so the page never freezes.
+27. **"Why not just save the sample like any other data?"**
+    It's 20 MB, four times the localStorage limit. Because the generator is seeded, the same 100,000 rows can be rebuilt in half a second, so storing them would be pure cost. Only data a user creates is saved, in IndexedDB, which has room for it.
 
 ---
 
@@ -383,7 +427,7 @@ n per arm = [z_{1−α/2}·√(2p̄(1−p̄)) + z_{1−β}·√(p₁(1−p₁)+p
 1. **Sales Dashboard:** KPI tiles compare month to date with the same days last month. Point at the anomaly strip and its spike week.
 2. **Product Analytics → Metric tree:** "Net revenue barely moved, but AOV fell sharply; fewer returns and more customers offset it." Show the KPI dictionary and guardrails.
 3. **Funnel:** explain the maturity window, then switch the segment to `fulfillment_center`.
-4. **Cohorts:** M1 ≈ 25%. Explain why young cohorts are excluded from later months of the average curve.
+4. **Cohorts:** M1 ≈ 27%. Explain why young cohorts are excluded from later months of the average curve.
 5. **RFM & CLV:** Champions (13% of customers) bring 36% of revenue. Click *At risk* to list customers for a win-back campaign.
 6. **A/B testing:**
    1. Enter 10,000/1,000 vs 10,000/1,100: p = 0.021, significant.

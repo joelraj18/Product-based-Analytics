@@ -1,5 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { CheckCircle, AlertTriangle, AlertCircle, Info, X, ChevronUp, ChevronDown, Inbox } from 'lucide-react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { CheckCircle, AlertTriangle, AlertCircle, Info, X, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 import { InfoTip, Prose } from './help';
 
 export const Card = ({ children, className = '', ...rest }) => (
@@ -214,23 +214,42 @@ export const Tabs = ({ tabs, value, onChange }) => (
 );
 
 // Sortable table. columns: [{ key, label, format?, align?, render? }]
-export const DataTable = ({ columns, rows, maxHeight = 420, emptyText = 'No rows', rowClassName, initialSort }) => {
+const formatCount = (n) => n.toLocaleString('en-IN');
+
+// One collator, created once: localeCompare builds a new one per call,
+// which takes seconds when sorting 100,000 rows.
+export const textCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+export const compareCells = (x, y) => {
+  if (typeof x === 'number' && typeof y === 'number') return x - y;
+  const nx = Number(x);
+  const ny = Number(y);
+  if (x !== '' && y !== '' && x !== null && y !== null && Number.isFinite(nx) && Number.isFinite(ny)) return nx - ny;
+  return textCollator.compare(String(x ?? ''), String(y ?? ''));
+};
+
+// Sortable table. Long tables are paged (pageSize rows at a time), so a
+// 30,000 row result never puts 30,000 rows in the page.
+export const DataTable = ({ columns, rows, maxHeight = 420, emptyText = 'No rows', rowClassName, initialSort, pageSize = 100 }) => {
   const [sort, setSort] = useState(initialSort || null);
+  const [page, setPage] = useState(0);
   const sorted = useMemo(() => {
     if (!sort) return rows;
     const { key, dir } = sort;
     return [...rows].sort((a, b) => {
-      const x = a[key];
-      const y = b[key];
-      const nx = Number(x);
-      const ny = Number(y);
-      const cmp = Number.isFinite(nx) && Number.isFinite(ny) && x !== '' && y !== '' ? nx - ny : String(x ?? '').localeCompare(String(y ?? ''));
+      const cmp = compareCells(a[key], b[key]);
       return dir === 'asc' ? cmp : -cmp;
     });
   }, [rows, sort]);
+  const pages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const current = Math.min(page, pages - 1);
+  // Back to page 1 when the table changes size or order (callers often
+  // build rows inline, so the array itself is new on every render).
+  useEffect(() => { setPage(0); }, [rows.length, sort]);
+  const visible = rows.length > pageSize ? sorted.slice(current * pageSize, (current + 1) * pageSize) : sorted;
   const toggle = (key) => setSort(s => (s && s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
   if (!rows.length) return <EmptyState title={emptyText} />;
   return (
+    <div>
     <div className="overflow-auto" style={{ maxHeight }}>
       <table className="w-full text-sm">
         <thead className="bg-beige-50 sticky top-0 z-10">
@@ -246,7 +265,7 @@ export const DataTable = ({ columns, rows, maxHeight = 420, emptyText = 'No rows
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {sorted.map((r, i) => (
+          {visible.map((r, i) => (
             <tr key={r.id ?? r.key ?? i} className={`hover:bg-blue-50/50 ${rowClassName ? rowClassName(r) : ''}`}>
               {columns.map(c => (
                 <td key={c.key} className={`px-3 py-2 whitespace-nowrap text-slate-700 ${c.align === 'right' ? 'text-right tabular-nums' : ''}`}>
@@ -257,6 +276,17 @@ export const DataTable = ({ columns, rows, maxHeight = 420, emptyText = 'No rows
           ))}
         </tbody>
       </table>
+    </div>
+    {pages > 1 && (
+      <nav className="flex items-center justify-between gap-3 px-3 py-2 border-t border-black/[0.06] text-xs text-slate-500" aria-label="Table pages">
+        <span>Rows {formatCount(current * pageSize + 1)} to {formatCount(Math.min(rows.length, (current + 1) * pageSize))} of {formatCount(rows.length)}</span>
+        <span className="flex items-center gap-1">
+          <button type="button" aria-label="Previous page" disabled={current === 0} onClick={() => setPage(current - 1)} className="p-1.5 rounded-full hover:bg-black/5 disabled:opacity-30"><ChevronLeft size={14} /></button>
+          <span className="tabular-nums">Page {current + 1} of {formatCount(pages)}</span>
+          <button type="button" aria-label="Next page" disabled={current >= pages - 1} onClick={() => setPage(current + 1)} className="p-1.5 rounded-full hover:bg-black/5 disabled:opacity-30"><ChevronRight size={14} /></button>
+        </span>
+      </nav>
+    )}
     </div>
   );
 };

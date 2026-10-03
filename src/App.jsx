@@ -84,8 +84,12 @@ const NavItem = ({ icon: Icon, label, active, expanded, onClick }) => (
   </button>
 );
 
+// Screens that read the orders table wait for the user's saved orders to
+// load, so the demo sample never flashes in front of their own data.
+const ORDER_SCREENS = ['dashboard', 'product', 'sql', 'excel', 'grid', 'cleaning'];
+
 const Shell = ({ user, onLogout }) => {
-  const { plan } = useWorkspace();
+  const { plan, ordersSource, ordersReady, orders } = useWorkspace();
   const [active, setActive] = usePersistentState('active_module', 'start');
   const { notify } = useToast();
   const warnedFull = useRef(false);
@@ -151,6 +155,16 @@ const Shell = ({ user, onLogout }) => {
             <span className="text-sm text-slate-500 truncate">{current.group}</span>
           </div>
           <div className="flex items-center gap-3">
+            {ordersReady && ordersSource === 'demo' && ORDER_SCREENS.includes(current.id) && (
+              <button
+                type="button"
+                onClick={() => go('upload')}
+                title={'You are exploring the simulated sample\nUpload your own orders to replace it'}
+                className="px-3 py-1 bg-beige-200/80 hover:bg-beige-300/80 text-beige-900 rounded-full text-xs font-medium whitespace-nowrap transition-colors"
+              >
+                Sample data · {Math.round(orders.length / 1000)}k orders
+              </button>
+            )}
             {weeks.length > 0 && (
               <div className="hidden md:block px-3 py-1 bg-beige-100 text-slate-700 rounded-full text-xs font-medium whitespace-nowrap">
                 Plan horizon: wk {weeks[0]} → {weeks[weeks.length - 1]}
@@ -175,7 +189,12 @@ const Shell = ({ user, onLogout }) => {
           </div>
           <HelpBox moduleId={current.id} onNavigate={go} />
           <ErrorBoundary resetKey={current.id}>
-            <Module onNavigate={go} />
+            {ORDER_SCREENS.includes(current.id) && !ordersReady ? (
+              <div role="status" className="space-y-4 animate-pulse" aria-label="Loading your orders">
+                <div className="h-24 rounded-2xl bg-white/70" />
+                <div className="h-72 rounded-2xl bg-white/70" />
+              </div>
+            ) : <Module onNavigate={go} />}
           </ErrorBoundary>
           </div>
         </div>
