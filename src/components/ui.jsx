@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CheckCircle, AlertTriangle, AlertCircle, Info, X, ChevronUp, ChevronDown, Inbox } from 'lucide-react';
+import { InfoTip } from './help';
 
 export const Card = ({ children, className = '', ...rest }) => (
   <div className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`} {...rest}>
@@ -45,21 +46,25 @@ export const PageHeader = ({ title, subtitle, actions }) => (
   </div>
 );
 
-export const KPICard = ({ title, value, sub, delta, deltaUnit = '%', goodWhenUp = true, deltaLabel = 'vs prior', icon, onClick, status }) => {
+export const KPICard = ({ title, value, sub, delta, deltaUnit = '%', goodWhenUp = true, deltaLabel = 'vs prior', icon, onClick, status, info }) => {
   const hasDelta = delta !== null && delta !== undefined && Number.isFinite(Number(delta));
   // Round first so a tiny negative never renders as a red "-0.0".
   const shown = hasDelta ? Math.round(Number(delta) * 10) / 10 : 0;
   const up = shown >= 0;
   const good = shown === 0 || up === goodWhenUp;
-  const Wrapper = onClick ? 'button' : 'div';
   return (
-    <Wrapper
-      onClick={onClick}
-      className={`text-left w-full bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between h-full ${onClick ? 'hover:shadow-md hover:border-blue-300 transition-all cursor-pointer' : ''}`}
-    >
+    <div className={`relative text-left w-full bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between h-full ${onClick ? 'hover:shadow-md hover:border-blue-300 transition-all' : ''}`}>
+      {onClick && (
+        // Stretched button keeps the whole card clickable while the ⓘ tip
+        // stays a separate control (buttons can't nest).
+        <button type="button" onClick={onClick} aria-label={`${title}: open details`} className="absolute inset-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      )}
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{title}</p>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+            <span>{title}</span>
+            {info && (typeof info === 'string' ? <InfoTip term={info} /> : info)}
+          </p>
           <div className="text-2xl font-bold text-slate-900 mt-2 truncate">{value}</div>
         </div>
         {icon && <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 shrink-0">{icon}</div>}
@@ -74,7 +79,7 @@ export const KPICard = ({ title, value, sub, delta, deltaUnit = '%', goodWhenUp 
         {status}
         {sub && <span className="text-slate-500">{sub}</span>}
       </div>
-    </Wrapper>
+    </div>
   );
 };
 

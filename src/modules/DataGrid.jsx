@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Table, Download, Upload, Plus, Trash2, Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Columns } from 'lucide-react';
-import { Card, Button, FileButton, TextInput, EmptyState, useToast } from '../components/ui';
+import { Table, Download, Plus, Trash2, Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Columns } from 'lucide-react';
+import { Card, Button, TextInput, EmptyState, useToast } from '../components/ui';
 import { useWorkspace } from '../state/workspace';
-import { parseCSV, columnsOf, downloadCSV, readFileText, today } from '../lib/csv';
+import { columnsOf, downloadCSV, today } from '../lib/csv';
+import SchemaImportButton from '../components/SchemaImportButton';
 
 const ROWS_PER_PAGE = 50;
 
@@ -42,18 +43,6 @@ const DataGrid = () => {
   const totalPages = Math.max(1, Math.ceil(view.length / ROWS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
   const pageRows = view.slice((safePage - 1) * ROWS_PER_PAGE, safePage * ROWS_PER_PAGE);
-
-  const importFile = async (file, mode) => {
-    try {
-      const rows = parseCSV(await readFileText(file));
-      if (!rows.length) { notify('The file has no data rows.', 'warning'); return; }
-      onUpdateData(mode === 'append' ? [...data, ...rows] : rows);
-      setPage(1); setSelected(new Set()); setSort(null);
-      notify(`${mode === 'append' ? 'Appended' : 'Loaded'} ${rows.length} records from ${file.name}.`);
-    } catch (e) {
-      notify(`Could not import: ${e.message}`, 'error');
-    }
-  };
 
   const commitEdit = () => {
     if (!editing) return;
@@ -106,8 +95,8 @@ const DataGrid = () => {
           <Button size="sm" variant="success" onClick={() => (data.length ? downloadCSV(view.map(v => v.r), `orders_${today()}.csv`, columns) : notify('No data to export', 'warning'))}>
             <Download size={12} /> Export{search ? ' filtered' : ''}
           </Button>
-          <FileButton size="sm" accept=".csv,text/csv" onFile={f => importFile(f, 'replace')}><Upload size={12} /> Import (replace)</FileButton>
-          <FileButton size="sm" variant="secondary" accept=".csv,text/csv" onFile={f => importFile(f, 'append')}><Upload size={12} /> Append</FileButton>
+          <SchemaImportButton size="sm" schemaId="orders" mode="replace">Import (replace)</SchemaImportButton>
+          <SchemaImportButton size="sm" variant="secondary" schemaId="orders" mode="append">Append</SchemaImportButton>
         </div>
       </div>
 

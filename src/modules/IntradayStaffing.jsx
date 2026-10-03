@@ -106,10 +106,10 @@ const IntradayStaffing = () => {
       {!grid ? <Card><EmptyState title="No forecast for this line">Import volume history in Demand Forecast.</EmptyState></Card> : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard title="Peak interval" value={`${grid.peak.agents} agents`} sub={`${DOW[grid.peak.d]} ${String(grid.peak.h).padStart(2, '0')}:00 · ${formatNumber(grid.peak.vol)} contacts`} icon={<Clock size={20} className="text-blue-600" />} />
+            <KPICard info="erlang" title="Peak interval" value={`${grid.peak.agents} agents`} sub={`${DOW[grid.peak.d]} ${String(grid.peak.h).padStart(2, '0')}:00 · ${formatNumber(grid.peak.vol)} contacts`} icon={<Clock size={20} className="text-blue-600" />} />
             <KPICard title="On-queue agent hours" value={formatNumber(grid.agentHours)} sub={`workload ${formatNumber(grid.workload)} hrs`} icon={<Users size={20} className="text-violet-600" />} />
-            <KPICard title="Implied occupancy" value={`${(grid.impliedOcc * 100).toFixed(1)}%`} sub={`plan assumes ${p.line.occupancy}%`} status={<StatusPill status={grid.impliedOcc * 100 + 3 < p.line.occupancy ? 'warning' : 'good'}>{grid.impliedOcc * 100 + 3 < p.line.occupancy ? 'Plan occupancy too high' : 'Consistent'}</StatusPill>} icon={<Gauge size={20} className="text-emerald-600" />} />
-            <KPICard title="Supply vs interval need" value={`${(grid.coverage * 100).toFixed(0)}%`} sub="planned on-queue hrs ÷ required" status={<StatusPill status={grid.coverage >= 1 ? 'good' : grid.coverage >= 0.95 ? 'warning' : 'critical'}>{grid.coverage >= 1 ? 'Covered' : 'Gap'}</StatusPill>} />
+            <KPICard info="occupancy" title="Implied occupancy" value={`${(grid.impliedOcc * 100).toFixed(1)}%`} sub={`plan assumes ${p.line.occupancy}%`} status={<StatusPill status={grid.impliedOcc * 100 + 3 < p.line.occupancy ? 'warning' : 'good'}>{grid.impliedOcc * 100 + 3 < p.line.occupancy ? 'Plan occupancy too high' : 'Consistent'}</StatusPill>} icon={<Gauge size={20} className="text-emerald-600" />} />
+            <KPICard info="serviceLevel" title="Supply vs interval need" value={`${(grid.coverage * 100).toFixed(0)}%`} sub="planned on-queue hrs ÷ required" status={<StatusPill status={grid.coverage >= 1 ? 'good' : grid.coverage >= 0.95 ? 'warning' : 'critical'}>{grid.coverage >= 1 ? 'Covered' : 'Gap'}</StatusPill>} />
           </div>
 
           <Card className="p-5">

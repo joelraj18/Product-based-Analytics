@@ -91,6 +91,7 @@ const PlanningHub = ({ onNavigate }) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
+          info="requiredFte"
           title="Required vs effective FTE"
           value={`${formatNumber(stats.reqNow)} / ${formatNumber(stats.effNow)}`}
           status={<StatusPill status={stats.effNow >= stats.reqNow ? 'good' : 'warning'}>{stats.effNow >= stats.reqNow ? 'Covered' : `${formatNumber(stats.reqNow - stats.effNow, 1)} FTE short`}</StatusPill>}
@@ -98,6 +99,7 @@ const PlanningHub = ({ onNavigate }) => {
           onClick={() => onNavigate('capacity')}
         />
         <KPICard
+          info="temps"
           title="Hires: perm + temp"
           value={`${formatNumber(stats.hires)} + ${formatNumber(stats.temps)}`}
           sub={`worst week ${stats.worstGap >= 0 ? '+' : ''}${stats.worstGap.toFixed(1)}% vs required`}
@@ -105,6 +107,7 @@ const PlanningHub = ({ onNavigate }) => {
           onClick={() => onNavigate('capacity')}
         />
         <KPICard
+          info="op"
           title="Variable cost (horizon)"
           value={formatCompact(stats.cost, currency)}
           sub={stats.opVar ? `${stats.opVar.pct >= 0 ? '+' : ''}${stats.opVar.pct.toFixed(1)}% vs OP2` : 'no OP target'}
@@ -113,6 +116,7 @@ const PlanningHub = ({ onNavigate }) => {
           onClick={() => onNavigate('budget')}
         />
         <KPICard
+          info="wape"
           title="Open risks · forecast WAPE (8 wk)"
           value={`${stats.openRisks} · ${Number.isFinite(stats.wape8) ? `${stats.wape8.toFixed(1)}%` : '—'}`}
           status={stats.highRisks > 0 ? <StatusPill status="critical">{stats.highRisks} high</StatusPill> : <StatusPill status="good">none high</StatusPill>}

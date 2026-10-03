@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Download, Upload, Wallet, Receipt, Scale, Wand2 } from 'lucide-react';
-import { Card, ChartCard, KPICard, PageHeader, Button, FileButton, NumberInput, DataTable, StatusPill, useToast } from '../components/ui';
+import { Download, Wallet, Receipt, Scale, Wand2 } from 'lucide-react';
+import { Card, ChartCard, KPICard, PageHeader, Button, NumberInput, DataTable, StatusPill } from '../components/ui';
 import { useWorkspace, monthlyTotals, deriveOpTargets } from '../state/workspace';
 import { rollupByMonth, costPerUnit, variance } from '../lib/budget';
-import { parseCSV, downloadCSV, readFileText, today } from '../lib/csv';
+import { downloadCSV, today } from '../lib/csv';
+import SchemaImportButton from '../components/SchemaImportButton';
 import { formatCurrency, formatCompact, formatNumber } from '../lib/format';
 import { monthLabel } from '../lib/dates';
 import { SERIES, AXIS_PROPS, GRID_PROPS, TOOLTIP_PROPS, CHART_INIT } from '../lib/theme';
@@ -13,7 +14,6 @@ const varStatus = (pct) => (pct <= 0 ? 'good' : pct <= 3 ? 'warning' : 'critical
 
 const BudgetPlanner = () => {
   const { plan, currency, opTargets, setOpTargets } = useWorkspace();
-  const { notify } = useToast();
   const fmt = (v) => formatCurrency(v, currency);
   const { plans } = plan;
 
@@ -73,17 +73,6 @@ const BudgetPlanner = () => {
     setOpTargets(exists ? opTargets.map(o => (o.month === month ? { ...o, [field]: value } : o)) : [...opTargets, { month, op1_volume: 0, op1_cost: 0, op2_volume: 0, op2_cost: 0, [field]: value }]);
   };
 
-  const importOp = async (file) => {
-    try {
-      const rows = parseCSV(await readFileText(file)).filter(r => /^\d{4}-\d{2}$/.test(String(r.month)));
-      if (!rows.length) { notify('Expected columns: month (YYYY-MM), op1_volume, op1_cost, op2_volume, op2_cost', 'error'); return; }
-      const byMonth = Object.fromEntries(opTargets.map(o => [o.month, o]));
-      rows.forEach(r => { byMonth[r.month] = { month: r.month, op1_volume: Number(r.op1_volume) || 0, op1_cost: Number(r.op1_cost) || 0, op2_volume: Number(r.op2_volume) || 0, op2_cost: Number(r.op2_cost) || 0 }; });
-      setOpTargets(Object.values(byMonth).sort((a, b) => a.month.localeCompare(b.month)));
-      notify(`Imported OP targets for ${rows.length} month(s).`);
-    } catch (e) { notify(`Import failed: ${e.message}`, 'error'); }
-  };
-
   const exportBudget = () => downloadCSV(months.map(m => ({
     month: m.month, volume: Math.round(m.volume), inhouse_cost: Math.round(m.inhouse), vendor_cost: Math.round(m.vendor),
     overtime_cost: Math.round(m.overtime), hiring_cost: Math.round(m.hiring), total_cost: Math.round(m.total),
@@ -99,16 +88,16 @@ const BudgetPlanner = () => {
         actions={(
           <>
             <Button variant="success" onClick={exportBudget}><Download size={16} /> Budget CSV</Button>
-            <FileButton variant="secondary" accept=".csv,text/csv" onFile={importOp}><Upload size={16} /> Import OP targets</FileButton>
+            <SchemaImportButton variant="secondary" schemaId="op_targets">Import OP targets</SchemaImportButton>
           </>
         )}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Plan cost (horizon)" value={formatCompact(k.total, currency)} sub={`${formatCompact(k.volume)} contacts`} icon={<Wallet size={20} className="text-blue-600" />} />
-        <KPICard title="vs OP2" value={k.vsOp2 ? `${k.vsOp2.pct >= 0 ? '+' : ''}${k.vsOp2.pct.toFixed(1)}%` : '—'} sub={k.vsOp2 ? `${fmt(k.vsOp2.abs)} over ${k.covered} month(s)` : 'no OP2 targets'} status={k.vsOp2 && <StatusPill status={varStatus(k.vsOp2.pct)}>{k.vsOp2.pct <= 0 ? 'Within' : 'Over'}</StatusPill>} icon={<Scale size={20} className="text-violet-600" />} />
-        <KPICard title="vs OP1" value={k.vsOp1 ? `${k.vsOp1.pct >= 0 ? '+' : ''}${k.vsOp1.pct.toFixed(1)}%` : '—'} sub={k.vsOp1 ? fmt(k.vsOp1.abs) : 'no OP1 targets'} status={k.vsOp1 && <StatusPill status={varStatus(k.vsOp1.pct)}>{k.vsOp1.pct <= 0 ? 'Within' : 'Over'}</StatusPill>} />
-        <KPICard title="Cost per contact" value={formatCurrency(k.cpc, currency, { maximumFractionDigits: 2 })} sub={k.opCpc ? `OP2 ${formatCurrency(k.opCpc, currency, { maximumFractionDigits: 2 })} · OT ${((100 * k.ot) / Math.max(1, k.total)).toFixed(1)}% of cost` : ''} icon={<Receipt size={20} className="text-emerald-600" />} />
+        <KPICard info="variableCost" title="Plan cost (horizon)" value={formatCompact(k.total, currency)} sub={`${formatCompact(k.volume)} contacts`} icon={<Wallet size={20} className="text-blue-600" />} />
+        <KPICard info="op" title="vs OP2" value={k.vsOp2 ? `${k.vsOp2.pct >= 0 ? '+' : ''}${k.vsOp2.pct.toFixed(1)}%` : '—'} sub={k.vsOp2 ? `${fmt(k.vsOp2.abs)} over ${k.covered} month(s)` : 'no OP2 targets'} status={k.vsOp2 && <StatusPill status={varStatus(k.vsOp2.pct)}>{k.vsOp2.pct <= 0 ? 'Within' : 'Over'}</StatusPill>} icon={<Scale size={20} className="text-violet-600" />} />
+        <KPICard info="op" title="vs OP1" value={k.vsOp1 ? `${k.vsOp1.pct >= 0 ? '+' : ''}${k.vsOp1.pct.toFixed(1)}%` : '—'} sub={k.vsOp1 ? fmt(k.vsOp1.abs) : 'no OP1 targets'} status={k.vsOp1 && <StatusPill status={varStatus(k.vsOp1.pct)}>{k.vsOp1.pct <= 0 ? 'Within' : 'Over'}</StatusPill>} />
+        <KPICard info="cpc" title="Cost per contact" value={formatCurrency(k.cpc, currency, { maximumFractionDigits: 2 })} sub={k.opCpc ? `OP2 ${formatCurrency(k.opCpc, currency, { maximumFractionDigits: 2 })} · OT ${((100 * k.ot) / Math.max(1, k.total)).toFixed(1)}% of cost` : ''} icon={<Receipt size={20} className="text-emerald-600" />} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

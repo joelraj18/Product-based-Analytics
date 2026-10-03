@@ -2,7 +2,7 @@ import React from 'react';
 import { Trash2, Save, Upload, RotateCcw } from 'lucide-react';
 import { Card, Button, FileButton, Field, Select, NumberInput, PageHeader, useToast } from '../components/ui';
 import { useWorkspace } from '../state/workspace';
-import { exportBackup, importBackup, resetWorkspace } from '../lib/storage';
+import { exportBackupWithTables, importBackupWithTables, resetWorkspace } from '../lib/storage';
 import { downloadFile, readFileText, today } from '../lib/csv';
 import { CURRENCIES } from '../lib/format';
 import { METHODS } from '../lib/forecast';
@@ -12,14 +12,14 @@ const Settings = () => {
   const { notify } = useToast();
   const set = (patch) => setSettings({ ...settings, ...patch });
 
-  const backup = () => {
-    downloadFile(JSON.stringify(exportBackup(), null, 2), `workx_backup_${today()}.json`, 'application/json');
-    notify('Backup downloaded.');
+  const backup = async () => {
+    downloadFile(JSON.stringify(await exportBackupWithTables(), null, 2), `workx_backup_${today()}.json`, 'application/json');
+    notify('Backup downloaded (includes uploaded tables).');
   };
 
   const restore = async (file) => {
     try {
-      const count = importBackup(JSON.parse(await readFileText(file)));
+      const count = await importBackupWithTables(JSON.parse(await readFileText(file)));
       notify(`Restored ${count} dataset(s). Reloading…`);
       setTimeout(() => window.location.reload(), 600);
     } catch (e) {
@@ -27,9 +27,9 @@ const Settings = () => {
     }
   };
 
-  const reset = () => {
-    if (!window.confirm('Reset all workspace data to the demo dataset? Your account is kept. Download a backup first if needed.')) return;
-    resetWorkspace();
+  const reset = async () => {
+    if (!window.confirm('Reset all workspace data to the demo dataset? Uploaded tables are deleted; your account is kept. Download a backup first if needed.')) return;
+    await resetWorkspace();
     window.location.reload();
   };
 

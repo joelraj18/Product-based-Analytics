@@ -117,10 +117,10 @@ const CapacityPlanner = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard title="Required FTE · peak" value={`${formatNumber(p.sim[0].required, 1)} · ${formatNumber(p.summary.peakRequired, 1)}`} sub="this week · horizon peak" icon={<Users size={20} className="text-blue-600" />} />
-            <KPICard title="Hires: perm + temp" value={`${p.summary.totalHires} + ${p.summary.totalTemps}`} sub={saved ? 'locked plan' : 'recommended plan'} icon={<UserPlus size={20} className="text-violet-600" />} />
-            <KPICard title="OT hours" value={formatNumber(p.summary.totalOtHours)} sub={`cap ${p.line.maxOtPct}% of tenured hrs`} icon={<Clock size={20} className="text-amber-600" />} />
-            <KPICard title="Coverage" value={st.label} status={<StatusPill status={st.status}>{st.status === 'good' ? 'Ready' : st.status === 'warning' ? 'Watch' : 'Action'}</StatusPill>} sub={`${formatNumber(prodHrs, 1)} productive hrs/FTE/wk · lead ${lead} wk`} />
+            <KPICard info="requiredFte" title="Required FTE · peak" value={`${formatNumber(p.sim[0].required, 1)} · ${formatNumber(p.summary.peakRequired, 1)}`} sub="this week · horizon peak" icon={<Users size={20} className="text-blue-600" />} />
+            <KPICard info="leadTime" title="Hires: perm + temp" value={`${p.summary.totalHires} + ${p.summary.totalTemps}`} sub={saved ? 'locked plan' : 'recommended plan'} icon={<UserPlus size={20} className="text-violet-600" />} />
+            <KPICard info="overtime" title="OT hours" value={formatNumber(p.summary.totalOtHours)} sub={`cap ${p.line.maxOtPct}% of tenured hrs`} icon={<Clock size={20} className="text-amber-600" />} />
+            <KPICard info="gap" title="Coverage" value={st.label} status={<StatusPill status={st.status}>{st.status === 'good' ? 'Ready' : st.status === 'warning' ? 'Watch' : 'Action'}</StatusPill>} sub={`${formatNumber(prodHrs, 1)} productive hrs/FTE/wk · lead ${lead} wk`} />
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { ComposedChart, LineChart, Line, Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Download, Upload, FileDown, ClipboardCopy, Plus, Target, Activity, Users, Gauge } from 'lucide-react';
-import { Card, ChartCard, KPICard, PageHeader, Button, FileButton, Field, Select, NumberInput, DataTable, StatusPill, Tabs, useToast } from '../components/ui';
+import { Download, FileDown, ClipboardCopy, Plus, Target, Activity, Users, Gauge } from 'lucide-react';
+import { Card, ChartCard, KPICard, PageHeader, Button, Field, Select, NumberInput, DataTable, StatusPill, Tabs, useToast } from '../components/ui';
 import { LineSelect } from '../components/planning';
 import { useWorkspace } from '../state/workspace';
 import { rollupByPeriod, kpiRollup, pareto } from '../lib/kpis';
-import { parseCSV, downloadCSV, downloadFile, readFileText, today } from '../lib/csv';
+import { downloadCSV, downloadFile, today } from '../lib/csv';
+import SchemaImportButton from '../components/SchemaImportButton';
 import { formatNumber, formatCompact, formatCurrency } from '../lib/format';
 import { monthLabel } from '../lib/dates';
 import { DEFECT_CATEGORIES } from '../data/seed';
@@ -17,7 +18,7 @@ const signedPct = (v, d = 1) => (Number.isFinite(v) ? `${v >= 0 ? '+' : ''}${v.t
 const signedPts = (v, d = 1) => (Number.isFinite(v) ? `${v >= 0 ? '+' : ''}${v.toFixed(d)} pts` : '—');
 
 const PlanningKPIs = () => {
-  const { actuals, setActuals, defects, setDefects, lines, currency } = useWorkspace();
+  const { actuals, defects, setDefects, lines, currency } = useWorkspace();
   const { notify } = useToast();
   const [lineId, setLineId] = useState('all');
   const [period, setPeriod] = useState('weekly');
@@ -39,17 +40,6 @@ const PlanningKPIs = () => {
   const firstWeek = inRange.length ? inRange.map(a => a.week_start).sort()[0] : '';
   const scopedDefects = defects.filter(x => (lineId === 'all' || x.line_id === lineId) && (!firstWeek || x.date >= firstWeek));
   const paretoRows = pareto(scopedDefects);
-
-  const importActuals = async (file) => {
-    try {
-      const rows = parseCSV(await readFileText(file)).filter(r => r.week_start && r.line_id && Number.isFinite(Number(r.actual_volume)));
-      if (!rows.length) { notify(`No valid rows. Expected columns: ${ACTUAL_COLUMNS.join(', ')}`, 'error'); return; }
-      const key = (r) => `${r.line_id}|${r.week_start}`;
-      const incoming = new Map(rows.map(r => [key(r), r]));
-      setActuals([...actuals.filter(a => !incoming.has(key(a))), ...incoming.values()].sort((a, b) => String(a.week_start).localeCompare(String(b.week_start))));
-      notify(`Upserted ${incoming.size} line-week(s) of actuals.`);
-    } catch (e) { notify(`Import failed: ${e.message}`, 'error'); }
-  };
 
   const wbr = () => {
     const lines_ = [
@@ -98,10 +88,10 @@ const PlanningKPIs = () => {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Forecast WAPE" value={pct(overall.wape)} delta={d('wape')} goodWhenUp={false} deltaUnit=" pts" deltaLabel="vs prior" sub={`bias ${signedPct(overall.bias)}`} icon={<Target size={20} className="text-blue-600" />} />
-        <KPICard title="Service level" value={pct(overall.sl)} delta={d('sl')} deltaUnit=" pts" deltaLabel="vs prior" status={<StatusPill status={overall.sl >= overall.slTarget ? 'good' : 'warning'}>{pct(overall.slAttainment, 0)} weeks met</StatusPill>} icon={<Activity size={20} className="text-emerald-600" />} />
-        <KPICard title="HC plan adherence" value={pct(overall.hcAdherence)} delta={d('hcAdherence')} deltaUnit=" pts" deltaLabel="vs prior" sub={`occupancy ${pct(overall.occupancy)}`} icon={<Users size={20} className="text-violet-600" />} />
-        <KPICard title="Productivity drift" value={`AHT ${signedPct(overall.ahtVar)}`} sub={`shrinkage ${signedPts(overall.shrinkVar)} · cost ${signedPct(overall.costVar)}`} icon={<Gauge size={20} className="text-amber-600" />} />
+        <KPICard info="wape" title="Forecast WAPE" value={pct(overall.wape)} delta={d('wape')} goodWhenUp={false} deltaUnit=" pts" deltaLabel="vs prior" sub={`bias ${signedPct(overall.bias)}`} icon={<Target size={20} className="text-blue-600" />} />
+        <KPICard info="serviceLevel" title="Service level" value={pct(overall.sl)} delta={d('sl')} deltaUnit=" pts" deltaLabel="vs prior" status={<StatusPill status={overall.sl >= overall.slTarget ? 'good' : 'warning'}>{pct(overall.slAttainment, 0)} weeks met</StatusPill>} icon={<Activity size={20} className="text-emerald-600" />} />
+        <KPICard info="adherence" title="HC plan adherence" value={pct(overall.hcAdherence)} delta={d('hcAdherence')} deltaUnit=" pts" deltaLabel="vs prior" sub={`occupancy ${pct(overall.occupancy)}`} icon={<Users size={20} className="text-violet-600" />} />
+        <KPICard info="aht" title="Productivity drift" value={`AHT ${signedPct(overall.ahtVar)}`} sub={`shrinkage ${signedPts(overall.shrinkVar)} · cost ${signedPct(overall.costVar)}`} icon={<Gauge size={20} className="text-amber-600" />} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -139,7 +129,7 @@ const PlanningKPIs = () => {
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="dark" onClick={wbr}><ClipboardCopy size={12} /> Generate review summary</Button>
             <Button size="sm" variant="success" onClick={() => downloadCSV(series.map(({ label, ...r }) => r), `planning_kpis_${period}_${today()}.csv`)}><Download size={12} /> KPI CSV</Button>
-            <FileButton size="sm" accept=".csv,text/csv" onFile={importActuals}><Upload size={12} /> Import actuals</FileButton>
+            <SchemaImportButton size="sm" schemaId="actuals">Import actuals</SchemaImportButton>
             <Button size="sm" variant="secondary" onClick={() => downloadCSV(actuals.slice(-4), 'actuals_template.csv', ACTUAL_COLUMNS)}><FileDown size={12} /> Template</Button>
           </div>
         </div>
