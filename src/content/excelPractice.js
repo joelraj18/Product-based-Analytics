@@ -5,7 +5,7 @@
 // `{n}` in a prompt or formula is replaced with the last data row.
 
 export const DATASETS = {
-  orders: { label: 'Orders', letters: 'A id · B date · C amount · D units · E status · F region · G category · H fulfillment_center' },
+  orders: { label: 'Orders', letters: 'A id · B date · C amount · D units · E status · F region · G category · H fulfillment_center · I customer_id' },
   actuals: { label: 'Weekly actuals', letters: 'A week_start · B line_id · C forecast_volume · D actual_volume · E planned_aht · F actual_aht · G planned_hc · H actual_hc · I planned_shrinkage · J actual_shrinkage · K sl_target · L sl_actual · M occupancy · N cost_planned · O cost_actual' },
   inventory: { label: 'Inventory', letters: 'A sku · B name · C category · D stock · E reorder_point' },
 };
@@ -45,7 +45,7 @@ export const EXCEL_PRACTICE = [
   { id: 'e15', group: 'Conditional', dataset: O, cell: 'J2', title: 'Average for a category', prompt: 'In `J2`, find the average Grocery order amount, rounded to 0 decimals', hint: '`ROUND(AVERAGEIFS(…), 0)`', formula: '=ROUND(AVERAGEIFS(C:C,G:G,"Grocery"),0)' },
   { id: 'e16', group: 'Conditional', dataset: O, cell: 'J2', title: 'Not equal criteria', prompt: 'In `J2`, add up revenue for every order that was not Cancelled', hint: '`"<>Cancelled"` means anything except Cancelled', formula: '=SUMIFS(C:C,E:E,"<>Cancelled")' },
   { id: 'e17', group: 'Conditional', dataset: O, cell: 'J2', title: 'Biggest order in a region', prompt: 'In `J2`, find the largest order in the West region', hint: '`MAXIFS(max_range, criteria_range, criteria)`', formula: '=MAXIFS(C:C,F:F,"West")' },
-  { id: 'e18', group: 'Conditional', dataset: O, cell: 'J2', title: 'Criteria from a cell', prompt: 'Type `South` in `I2`\nIn `J2`, count orders for the region typed in `I2`', hint: 'Use the cell as the criteria: `COUNTIF(F:F, I2)`', formula: '=COUNTIF(F:F,"South")' },
+  { id: 'e18', group: 'Conditional', dataset: O, cell: 'J2', title: 'Criteria from a cell', prompt: 'Type `South` in `K2`\nIn `J2`, count orders for the region typed in `K2`', hint: 'Use the cell as the criteria: `COUNTIF(F:F, K2)`', formula: '=COUNTIF(F:F,"South")' },
   { id: 'e19', group: 'Conditional', dataset: O, cell: 'J2', title: 'Wildcards', prompt: 'In `J2`, count orders from fulfillment centers whose code ends in 1 to 4\nThe codes look like `FC-1`', hint: 'Add four `COUNTIF` calls, one for each code', formula: '=COUNTIF(H:H,"FC-1")+COUNTIF(H:H,"FC-2")+COUNTIF(H:H,"FC-3")+COUNTIF(H:H,"FC-4")' },
   { id: 'e20', group: 'Conditional', dataset: A, cell: 'Q2', title: 'Weeks that missed SL', prompt: 'In `Q2`, count weeks of `CS-VOICE` where `sl_actual` was below 80', hint: '`COUNTIFS(B:B, "CS-VOICE", L:L, "<80")`', formula: '=COUNTIFS(B:B,"CS-VOICE",L:L,"<80")' },
   { id: 'e21', group: 'Conditional', dataset: A, cell: 'Q2', title: 'Overspend', prompt: 'In `Q2`, add up `cost_actual` for `RETURNS-OPS`', hint: '`SUMIFS(O:O, B:B, "RETURNS-OPS")`', formula: '=SUMIFS(O:O,B:B,"RETURNS-OPS")' },

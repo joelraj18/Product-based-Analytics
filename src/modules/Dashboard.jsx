@@ -3,14 +3,18 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { Settings, ArrowLeft, Banknote, CheckCircle, Clock, Package, Download } from 'lucide-react';
-import { Card, KPICard, ChartCard, Field, Select, Button, DataTable, EmptyState, PageHeader } from '../components/ui';
+import { Card, KPICard, ChartCard, Field, Select, Button, DataTable, EmptyState, PageHeader, StatusPill } from '../components/ui';
 import { useWorkspace } from '../state/workspace';
 import { columnsOf, downloadCSV } from '../lib/csv';
 import { toNumber, pctChange, sum } from '../lib/stats';
-import { parseDate, monthKey, monthLabel } from '../lib/dates';
+import { parseDate, monthKey, monthLabel, isoDate } from '../lib/dates';
 import { formatCurrency, formatCompact, formatNumber } from '../lib/format';
 import { SERIES, AXIS_PROPS, GRID_PROPS, TOOLTIP_PROPS, clickedRow, CHART_INIT } from '../lib/theme';
+import { normalizeOrders } from '../lib/product/orders';
+import { detectAnomalies, weeklyTotals } from '../lib/product/anomaly';
+import { AnomalyChart } from './ProductAnalytics';
 
+const isoOf = (v) => { const d = parseDate(v); return d && !Number.isNaN(d.getTime()) ? isoDate(d) : ''; };
 const isDone = (v) => /ship|deliver|done|complete/i.test(String(v ?? ''));
 const isPending = (v) => /pending|open|process/i.test(String(v ?? ''));
 
@@ -26,7 +30,7 @@ const ConfigPanel = ({ columns, config, setConfig }) => (
   </Card>
 );
 
-const Dashboard = () => {
+const Dashboard = ({ onNavigate }) => {
   const { orders: data, dashboardConfig: config, setDashboardConfig: setConfig, currency } = useWorkspace();
   const [drillDown, setDrillDown] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('All');
@@ -69,6 +73,13 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered, config.catCol, config.valCol]);
 
+  // Weekly value with a trailing z score, so unusual weeks surface on their own.
+  const anomalies = useMemo(() => {
+    const norm = normalizeOrders(data, { date: config.dateCol, amount: config.valCol, status: config.statusCol, customer: '' });
+    return detectAnomalies(weeklyTotals(norm, o => o.amount), { window: 8, threshold: 2.5 });
+  }, [data, config.dateCol, config.valCol, config.statusCol]);
+  const recentAlerts = anomalies.slice(-13).filter(p => p.flag).reverse();
+
   const metrics = useMemo(() => {
     const slice = (m) => processed.filter(d => d._month === m);
     const calc = (rows) => ({
@@ -81,12 +92,19 @@ const Dashboard = () => {
     const base = month === 'All' ? months[months.length - 1] : month;
     const prevMonth = months[months.indexOf(base) - 1];
     let growth = {};
+    // A month still in progress is compared with the same days of the month
+    // before (month to date), otherwise every partial month looks like a drop.
+    const dayOf = (r) => Number(String(isoOf(r[config.dateCol])).slice(8, 10));
+    const baseRows = base ? slice(base) : [];
+    const lastDay = baseRows.length ? Math.max(...baseRows.map(dayOf)) : 0;
+    const monthEnd = base ? new Date(Date.UTC(Number(base.slice(0, 4)), Number(base.slice(5, 7)), 0)).getUTCDate() : 0;
+    const partial = base === months[months.length - 1] && lastDay < monthEnd;
     if (base && prevMonth) {
-      const a = calc(slice(base));
-      const b = calc(slice(prevMonth));
+      const a = calc(baseRows);
+      const b = calc(partial ? slice(prevMonth).filter(r => dayOf(r) <= lastDay) : slice(prevMonth));
       growth = { rev: pctChange(a.rev, b.rev), done: pctChange(a.done, b.done), pending: pctChange(a.pending, b.pending), aov: pctChange(a.count ? a.rev / a.count : 0, b.count ? b.rev / b.count : 0) };
     }
-    return { ...cur, aov: cur.count ? cur.rev / cur.count : 0, growth, compare: base && prevMonth ? `${monthLabel(base)} vs ${monthLabel(prevMonth)}` : 'no prior month' };
+    return { ...cur, aov: cur.count ? cur.rev / cur.count : 0, growth, compare: base && prevMonth ? (partial ? `${monthLabel(base)} to date vs same ${lastDay} days of ${monthLabel(prevMonth)}` : `${monthLabel(base)} vs ${monthLabel(prevMonth)}`) : 'no prior month' };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered, processed, months, month, config.statusCol, config.valCol]);
 
@@ -174,6 +192,22 @@ const Dashboard = () => {
           </ResponsiveContainer>
         </ChartCard>
       </div>
+
+      {anomalies.length > 8 && (
+        <ChartCard
+          title="Anomaly alerts"
+          subtitle={recentAlerts.length ? `${recentAlerts.length} unusual week${recentAlerts.length === 1 ? '' : 's'} in the last 13 weeks, outside the band of the previous 8 weeks` : 'No unusual weeks in the last 13 weeks; the band is the expected range from the previous 8 weeks'}
+          height={200}
+          actions={(
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              {recentAlerts.slice(0, 3).map(a => <StatusPill key={a.key} status={a.flag === 'spike' ? 'warning' : 'critical'}>{a.flag === 'spike' ? 'Spike' : 'Drop'} wk {a.key}</StatusPill>)}
+              {onNavigate && <Button size="sm" variant="ghost" onClick={() => onNavigate('product')}>Explore →</Button>}
+            </div>
+          )}
+        >
+          <AnomalyChart points={anomalies.slice(-26)} format={v => formatCompact(v, currency)} height="100%" />
+        </ChartCard>
+      )}
 
       {config.catCol && (
         <ChartCard title={`Value by ${config.catCol}`} subtitle="Top 10; click a bar to drill in" height={260}>

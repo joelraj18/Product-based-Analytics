@@ -4,6 +4,8 @@
 
 body {
   margin: 0;
+  background: #f5f3ef;
+  color: #1d1d1f;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -19,3 +21,11 @@ h1, h2, h3 {
 code, pre, kbd, textarea[aria-label='SQL query'] {
   font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+
+/* Apple style details: soft selection, thin scrollbars, calm focus rings. */
+::selection { background: #b9d8fe; }
+* { scrollbar-width: thin; scrollbar-color: #d6d2ca transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: #d6d2ca; border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+:focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }

@@ -15,7 +15,7 @@ const CATEGORIES = ['Electronics', 'Home', 'Apparel', 'Beauty', 'Grocery'];
 export const seedOrders = (count = 400) => {
   const rng = makeRng(42);
   const end = historyEnd();
-  return Array.from({ length: count }, (_, i) => {
+  const orders = Array.from({ length: count }, (_, i) => {
     const daysAgo = rng.int(0, 364);
     const category = rng.pick(CATEGORIES);
     const units = rng.int(1, 5);
@@ -31,6 +31,30 @@ export const seedOrders = (count = 400) => {
       fulfillment_center: `FC-${rng.int(1, 8)}`,
     };
   }).sort((a, b) => a.date.localeCompare(b.date));
+  return assignCustomers(orders);
+};
+
+// Gives each order a customer, walking forward in time. A new customer is
+// acquired some of the time; otherwise a returning customer is picked with a
+// weight of loyalty × recency decay, so some customers come back often and
+// others churn. A separate RNG keeps every other order field unchanged.
+const assignCustomers = (orders) => {
+  const rng = makeRng(4242);
+  const customers = []; // { id, loyalty, last }
+  return orders.map((o) => {
+    const day = parseDate(o.date).getTime() / 86400000;
+    let c;
+    if (!customers.length || rng.next() < 0.36) {
+      c = { id: `CUST-${1001 + customers.length}`, loyalty: 0.2 + 2.5 * rng.next() ** 2, last: day };
+      customers.push(c);
+    } else {
+      const weights = customers.map(x => x.loyalty * Math.exp(-(day - x.last) / 75));
+      let r = rng.next() * weights.reduce((a, b) => a + b, 0);
+      c = customers.find((x, i) => (r -= weights[i]) <= 0) || customers[customers.length - 1];
+      c.last = day;
+    }
+    return { ...o, customer_id: c.id };
+  });
 };
 
 export const seedInventory = () => {

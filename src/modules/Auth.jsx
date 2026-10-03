@@ -36,37 +36,37 @@ const AuthModule = ({ onLogin }) => {
     return undefined;
   };
 
-  const inputCls = 'w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500';
+  const inputCls = 'w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500';
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col">
-        <div className="bg-slate-900 p-8 text-center">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-900/50">
+    <div className="min-h-screen bg-[#f5f3ef] flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-md rounded-[28px] shadow-lift overflow-hidden flex flex-col ring-1 ring-black/5">
+        <div className="bg-gradient-to-b from-beige-200 to-beige-100 p-8 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-beige-300 to-beige-500 ring-1 ring-black/5 flex items-center justify-center mx-auto mb-4 shadow-soft">
             <span className="text-2xl font-bold text-white">W</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">WorkX</h1>
-          <p className="text-slate-400 text-sm mt-2">Workforce Planning &amp; Analytics Suite</p>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">WorkX</h1>
+          <p className="text-slate-500 text-sm mt-2">Workforce Planning &amp; Analytics Suite</p>
         </div>
 
         <div className="p-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 mb-6 text-center">
             {isRegistering ? 'Create Account' : 'Welcome Back'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {isRegistering && (
               <label className="block">
-                <span className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</span>
+                <span className="block text-xs font-medium text-slate-500 mb-1">Full Name</span>
                 <input type="text" name="name" autoComplete="name" value={formData.name} onChange={handleChange} className={inputCls} placeholder="Jane Doe" />
               </label>
             )}
             <label className="block">
-              <span className="block text-xs font-bold text-slate-500 uppercase mb-1">Email Address</span>
+              <span className="block text-xs font-medium text-slate-500 mb-1">Email Address</span>
               <input type="email" name="email" autoComplete="email" value={formData.email} onChange={handleChange} className={inputCls} placeholder="name@company.com" />
             </label>
             <label className="block">
-              <span className="block text-xs font-bold text-slate-500 uppercase mb-1">Password</span>
+              <span className="block text-xs font-medium text-slate-500 mb-1">Password</span>
               <input type="password" name="password" autoComplete={isRegistering ? 'new-password' : 'current-password'} value={formData.password} onChange={handleChange} className={inputCls} placeholder="••••••••" />
             </label>
 
@@ -76,14 +76,14 @@ const AuthModule = ({ onLogin }) => {
               </div>
             )}
 
-            <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-200 transition-all">
+            <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all">
               {isRegistering ? 'Register' : 'Sign In'}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-500">
             {isRegistering ? 'Already have an account? ' : 'New to WorkX? '}
-            <button type="button" onClick={() => { setIsRegistering(!isRegistering); setError(''); }} className="text-blue-600 font-bold hover:underline">
+            <button type="button" onClick={() => { setIsRegistering(!isRegistering); setError(''); }} className="text-blue-600 font-medium hover:underline">
               {isRegistering ? 'Sign In' : 'Create Account'}
             </button>
           </div>

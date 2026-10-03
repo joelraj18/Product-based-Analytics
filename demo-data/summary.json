@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-10-02T21:23:47.395Z",
+  "exported_at": "2026-10-03T16:49:40.508Z",
   "plan_horizon": {
     "first_week": "2026-09-28",
     "last_week": "2027-03-22",
@@ -211,7 +211,7 @@
   "open_risks": [
     {
       "id": "R-1",
-      "title": "Peak-season volume above forecast",
+      "title": "Peak season volume above forecast",
       "score": 15,
       "owner": "Planning"
     },
@@ -237,27 +237,27 @@
   "insights": [
     {
       "status": "info",
-      "text": "Customer Support · Voice: 75 seasonal hire(s) needed for peak — start class by week of 2026-09-28."
+      "text": "Customer Support · Voice: 75 seasonal hire(s) needed for the peak\nStart the class by the week of 2026-09-28"
     },
     {
       "status": "warning",
-      "text": "Customer Support · Chat: 98 OT hours planned (₹61,710)."
+      "text": "Customer Support · Chat: 98 OT hours planned, costing ₹61,710"
     },
     {
       "status": "info",
-      "text": "Customer Support · Chat: 50 seasonal hire(s) needed for peak — start class by week of 2026-09-28."
+      "text": "Customer Support · Chat: 50 seasonal hire(s) needed for the peak\nStart the class by the week of 2026-09-28"
     },
     {
       "status": "info",
-      "text": "Partner Support · Email: 27 seasonal hire(s) needed for peak — start class by week of 2026-09-28."
+      "text": "Partner Support · Email: 27 seasonal hire(s) needed for the peak\nStart the class by the week of 2026-09-28"
     },
     {
       "status": "warning",
-      "text": "Returns & Claims Ops: vendor needs ~47 extra hours of flex — confirm capacity in the vendor staffing review (billed per unit)."
+      "text": "Returns & Claims Ops: vendor needs about 47 extra hours of flex\nConfirm capacity in the vendor staffing review, billed per unit"
     },
     {
       "status": "info",
-      "text": "Returns & Claims Ops: 35 seasonal hire(s) needed for peak — start class by week of 2026-09-28."
+      "text": "Returns & Claims Ops: 35 seasonal hire(s) needed for the peak\nStart the class by the week of 2026-09-28"
     }
   ]
 }

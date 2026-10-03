@@ -63,19 +63,19 @@ export const HelpBox = ({ moduleId, onNavigate }) => {
   const [open, setOpen] = usePersistentState(`help_open_${moduleId}`, true);
   if (!help) return null;
   return (
-    <div className="max-w-7xl mx-auto mb-4">
-      <div className="rounded-xl border border-blue-200 bg-blue-50/60">
+    <div className="mb-6">
+      <div className="rounded-2xl bg-beige-100 border border-beige-200">
         <button
           type="button"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
-          className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-semibold text-blue-900"
+          className="w-full flex items-center justify-between gap-2 px-5 py-3 text-sm font-medium text-slate-800"
         >
           <span className="flex items-center gap-2"><Lightbulb size={16} aria-hidden="true" /> What am I looking at?</span>
           <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
         </button>
         {open && (
-          <div className="px-4 pb-4 text-sm text-slate-700 space-y-2">
+          <div className="px-5 pb-5 text-sm text-slate-700 space-y-2 leading-relaxed">
             <p><Prose text={help.purpose} /></p>
             <ul className="list-disc pl-5 space-y-1">
               {help.steps.map(s => <li key={s}><Prose text={s} /></li>)}
@@ -84,10 +84,10 @@ export const HelpBox = ({ moduleId, onNavigate }) => {
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <span className="text-xs text-slate-500">Uses data from:</span>
                 {help.feeds.map(f => (
-                  <span key={f} className="text-xs bg-white border border-blue-200 rounded-full px-2 py-0.5 text-blue-900">{SCHEMA_BY_ID[f].label}</span>
+                  <span key={f} className="text-xs bg-white rounded-full px-2.5 py-0.5 text-slate-700 ring-1 ring-black/5">{SCHEMA_BY_ID[f].label}</span>
                 ))}
                 {onNavigate && (
-                  <button type="button" onClick={() => onNavigate('upload')} className="text-xs text-blue-700 font-semibold hover:underline inline-flex items-center gap-1">
+                  <button type="button" onClick={() => onNavigate('upload')} className="text-xs text-blue-600 font-medium hover:underline inline-flex items-center gap-1">
                     <Upload size={12} aria-hidden="true" /> Upload your own
                   </button>
                 )}
